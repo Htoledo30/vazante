@@ -1,0 +1,68 @@
+// Ofícios (classes) e armas.
+import { register } from '../combat/registry.js';
+
+register('classes', {
+  arpoadora: {
+    name: 'Arpoadora', icon: '🔱', sprite: 'hero_arp',
+    hp: 15, move: 3, fol: 3, armor: 0,
+    attrs: { vig: 1, imp: 2, fol: 0, can: 0 },
+    weapons: ['harpoon_iron', 'harpoon_barbed', 'harpoon_chain'],
+    start: ['a_brutal'],
+    pool: ['a_brutal', 'a_anchor', 'a_spin', 'a_net', 'a_swap', 'a_double', 'a_leap', 'a_bigcatch', 'a_ironTide', 'a_tight'],
+    tagline: 'Controle e posicionamento',
+    desc: 'Fisga inimigos e os arrasta para onde quiser: contra paredes, para a água funda, para dentro do ataque de outro monstro. O arpão precisa ser recuperado — gerencie-o.',
+    style: 'Pegue o arpão de volta pisando nele ou puxando a corda. Colisões são seu dano principal.',
+  },
+  faroleiro: {
+    name: 'Faroleiro', icon: '🏮', sprite: 'hero_far',
+    hp: 13, move: 3, fol: 4, armor: 0,
+    attrs: { vig: 0, imp: 1, fol: 1, can: 1 },
+    weapons: ['lantern', 'lantern_signal', 'lantern_powder'],
+    start: ['f_oil', 'f_spark'],
+    pool: ['f_oil', 'f_spark', 'f_flash', 'f_throw', 'f_steam', 'f_beacon', 'f_ember', 'f_fuse', 'f_glare', 'f_blaze'],
+    tagline: 'Fogo, óleo e luz',
+    desc: 'Espalha óleo e ateia fogo; óleo flutua e queima até sobre a água. A luz expõe e atordoa. Sofre quando a maré sobe — o vapor dele faz a água recuar.',
+    unlock: 'Reacenda o Farol de Salgema.',
+    style: 'Prepare o terreno com óleo, depois uma faísca. Clarão cancela ataques perigosos.',
+  },
+  mergulhadora: {
+    name: 'Mergulhadora', icon: '🤿', sprite: 'hero_mer',
+    hp: 17, move: 3, fol: 5, armor: 0, tags: ['swimmer'],
+    attrs: { vig: 2, imp: 1, fol: 1, can: 0 },
+    weapons: ['trident', 'coral_knife', 'net_gun'],
+    start: ['m_sub'],
+    pool: ['m_sub', 'm_whirl', 'm_wave', 'm_dive', 'm_drown', 'm_bubble', 'm_spout', 'm_ambush', 'm_pressure', 'm_current'],
+    tagline: 'A água é sua aliada',
+    desc: 'Nada sem perder movimento nem fôlego. Submerge para ficar imune, emboscar e afogar. Quanto mais alta a maré, mais forte.',
+    unlock: 'Resgate Tião, o mergulhador, no Porto Afogado.',
+    style: 'Fique na água funda, submerja nos turnos perigosos e ataque de baixo.',
+  },
+  cantora: {
+    name: 'Cantora de Maré', icon: '🐚', sprite: 'hero_can',
+    hp: 12, move: 3, fol: 4, armor: 0,
+    attrs: { vig: 0, imp: 0, fol: 1, can: 3 },
+    weapons: ['conch', 'conch_horn', 'tide_bell'],
+    start: ['c_flood', 'c_ebb'],
+    pool: ['c_flood', 'c_ebb', 'c_current', 'c_living', 'c_lament', 'c_salt', 'c_lullaby', 'c_surge', 'c_choir', 'c_harmony'],
+    tagline: 'Comanda a Tábua de Marés',
+    desc: 'Sobe e desce a maré, arrasta tudo o que está na água, ergue ilhas de sal e faz os inimigos dormirem. Frágil de perto — e enxerga mais longe na Tábua.',
+    unlock: 'Obtenha dois dos três Versos de Aurélia.',
+    style: 'Mude a maré no momento certo: afunde pesados, encalhe águas-vivas, afogue quem não nada.',
+    forecast: 2,
+  },
+});
+
+register('weapons', {
+  harpoon_iron: { cls: 'arpoadora', name: 'Arpão de Ferro', basics: ['h_throw', 'h_pull', 'h_jab'], params: { range: 4, throwDmg: 2, pull: 2 }, desc: 'Equilibrado: arremesso de 2 de dano, puxão de 2 casas.' },
+  harpoon_barbed: { cls: 'arpoadora', name: 'Arpão Farpado', basics: ['h_throw', 'h_pull', 'h_jab'], params: { range: 4, throwDmg: 1, pull: 3, bleed: 3 }, desc: 'Fisgados sangram (perdem vida ao se mover). Puxão de 3 casas, mas o arremesso causa só 1.', forge: 1 },
+  harpoon_chain: { cls: 'arpoadora', name: 'Arpão de Corrente', basics: ['h_throw', 'h_pull', 'h_zip', 'h_jab'], params: { range: 5, throwDmg: 2, pull: 2 }, desc: 'Alcance 5 e uma ação extra: Lançar-se até o alvo fisgado.', forge: 2 },
+  lantern: { cls: 'faroleiro', name: 'Lanterna de Óleo', basics: ['f_bash', 'f_beam'], params: { bashDmg: 2, beamRange: 4 }, desc: 'Golpe que incendeia e facho que expõe.' },
+  lantern_signal: { cls: 'faroleiro', name: 'Lanterna de Sinais', basics: ['f_bash', 'f_beam'], params: { bashDmg: 1, beamRange: 6, beamPush: 1 }, desc: 'Facho de alcance 6 que empurra; golpe mais fraco.', forge: 1 },
+  lantern_powder: { cls: 'faroleiro', name: 'Lamparina de Pólvora', basics: ['f_bash', 'f_beam'], params: { powder: 1, beamRange: 3 }, desc: 'O golpe vira uma pequena explosão de fogo (atinge vizinhos do alvo).', forge: 2 },
+  trident: { cls: 'mergulhadora', name: 'Tridente', basics: ['m_thrust', 'm_shove'], params: { thrustDmg: 2 }, desc: 'Estocada que atinge 2 casas em linha.' },
+  coral_knife: { cls: 'mergulhadora', name: 'Faca de Coral', basics: ['m_slash', 'm_shove'], params: {}, desc: 'Corte de 3 que faz sangrar. Curto alcance.', forge: 1 },
+  net_gun: { cls: 'mergulhadora', name: 'Arpéu de Rede', basics: ['m_netshot', 'm_thrust', 'm_shove'], params: { thrustDmg: 1 }, desc: 'Dispara redes que prendem à distância; estocada mais fraca.', forge: 2 },
+  conch: { cls: 'cantora', name: 'Concha Cantante', basics: ['c_note', 'c_hum'], params: {}, desc: 'Nota à distância, sem precisar de linha.' },
+  conch_horn: { cls: 'cantora', name: 'Búzio de Guerra', basics: ['c_horn', 'c_hum'], params: {}, desc: 'Som perfurante em linha que atinge todos.', forge: 1 },
+  tide_bell: { cls: 'cantora', name: 'Sino de Maré', basics: ['c_note', 'c_hum'], params: { notePush: 1 }, desc: 'A Nota também empurra alvos que estão na água.', forge: 2 },
+});

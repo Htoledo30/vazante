@@ -1,0 +1,17 @@
+{
+  "name": "vazante",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VAZANTE — A Cidade sob a Maré. RPG tático roguelite para iPhone (PWA).",
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/serve.mjs game 8080",
+    "build": "node tools/build.mjs",
+    "preview": "node tools/serve.mjs dist 8081",
+    "test": "node tests/run-all.mjs",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

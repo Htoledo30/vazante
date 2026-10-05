@@ -1,0 +1,16 @@
+import { webkit, devices } from 'playwright';
+import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+const srv = spawn(process.execPath, ['tools/serve.mjs', 'dist', '8124', '/vazante/'], { stdio: 'ignore' });
+await new Promise((r) => setTimeout(r, 600));
+const browser = await webkit.launch();
+const page = await (await browser.newContext({ ...devices['iPhone 13'] })).newPage();
+page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
+page.on('console', (m) => console.log('console', m.type(), m.text()));
+await page.goto('http://localhost:8124/vazante/');
+await page.waitForTimeout(800);
+const botSrc = readFileSync('tests/bot.mjs', 'utf8').replaceAll('../game/js/', './js/') + '\nwindow.__bot = { botTurn, playCombat };';
+await page.addScriptTag({ type: 'module', content: botSrc }).catch((e) => console.log('ADD', e.message));
+await page.waitForTimeout(1500);
+console.log('bot?', await page.evaluate(() => !!window.__bot));
+await browser.close(); srv.kill();
