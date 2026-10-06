@@ -4,7 +4,7 @@
 .ch-hud { display: flex; flex-direction: column; gap: 5px; }
 .ch-hud-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ch-hud-name {
-  appearance: none; background: none; border: 0; color: var(--bone); padding: 2px 0; min-height: 34px;
+  appearance: none; background: none; border: 0; color: var(--bone); padding: 2px 0; min-height: 44px;
   display: flex; align-items: baseline; gap: 6px; max-width: 38%; min-width: 0; cursor: pointer; text-align: left;
 }
 .ch-hud-nm { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -21,7 +21,7 @@
 .ch-hud-world { justify-content: space-between; }
 .ch-hud-chips { display: flex; flex-wrap: wrap; gap: 4px 8px; font: 12px var(--mono); color: var(--ink2); min-width: 0; }
 .ch-hud-chip { white-space: nowrap; }
-.ch-hud .btn-small { min-height: 34px; min-width: 40px; padding: 2px 8px; }
+.ch-hud .btn-small { min-height: 44px; min-width: 44px; padding: 2px 8px; }
 
 /* ---------- criação ---------- */
 .ch-title { font-size: 24px; letter-spacing: .04em; margin: 4px 0 2px; }

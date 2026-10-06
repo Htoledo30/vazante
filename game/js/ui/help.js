@@ -57,6 +57,8 @@ Origem, traços e itens abrem opções exclusivas. Sucesso crítico (rolagem bai
 • O botão mostra Fôlego, tempo, chance de acerto e dano estimado.
 • Distância: 0 corpo a corpo, 1 perto, 2 longe. Avance para golpear; lanças e foices alcançam 1; bestas preferem distância.
 • Recuar de quem está engajado provoca golpe de oportunidade.
+
+• No máximo dois inimigos lutam colados em você; os outros circulam esperando a vez — ou atiram.
 • Executar: só em inimigo caído, atordoado ou moribundo. Morte brutal, reduz seu Pavor e quebra a moral deles.
 • Fugir nem sempre é possível (pernas quebradas, chefes).`,
     tip: 'Matar primeiro quem cura ou levanta mortos vale mais que dano bruto.',
@@ -179,7 +181,7 @@ Feridas saram com dias de descanso ou com o Barbeiro-cirurgião. Infecção não
 
 • Custo: nível atual + 1 frascos.
 • Cada nível: +6 Corrupção (reduzida por VON), +1 atributo, 1 de 3 Dádivas.
-• Vida: 30 + VIG × 6 + nível × 3.
+• Vida: 36 + VIG × 7 + nível × 4.
 
 Atributos vão de 1 a 10.`,
     tip: 'Um nível a mais pode valer menos que três frascos vendidos para curar uma fratura.',

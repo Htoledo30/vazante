@@ -53,7 +53,7 @@ Curto prazo: sobreviver à expedição e voltar com Icor. Médio: preparar build
 Teste de atributo: `chance% = clamp(5, 95, 35 + attr*8 + bônus - dificuldade)`; dificuldades: Fácil 0, Média 20, Difícil 40, Brutal 60. **A chance é sempre mostrada no botão.**
 
 ### Recursos
-- **Vida (PV)**: `30 + VIG*6 + nível*3`.
+- **Vida (PV)**: `36 + VIG*7 + nível*4`.
 - **Fôlego** (só em combate): máx `6 + VIG`; recupera `3 + bônus − peso da armadura` por turno próprio. Ações custam Fôlego. A 0: **Exausto** (esquiva −20, ações +25% tempo).
 - **Pavor** (0–100): sobe com horrores, escuridão, ferimentos graves, aliados mortos. 50 Abalado (−5 precisão), 75 Aterrorizado (−10 precisão, 10% de perder o turno), 100 **Colapso** (fuga em pânico / fúria cega / catatonia; depois volta a 70). Cai com descanso, bebida, fé, execuções.
 - **Corrupção** (0–100): sobe ao beber Icor, usar ritos, mutações, golpes de Icor. A cada 25: escolha 1 de 2 **mutações** (poder + defeito). 100: você **se transforma** — morte; seu corpo vira uma Aberração no mapa.

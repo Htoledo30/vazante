@@ -5,6 +5,7 @@ import fieldR3 from './field_r3.js';
 import fieldR4 from './field_r4.js';
 import fieldR5 from './field_r5.js';
 import fieldAny from './field_any.js';
+import fieldDeep from './field_deep.js';
 import camp from './camp.js';
 import night from './night.js';
 import city from './city.js';
@@ -16,7 +17,7 @@ import story from './story.js';
 const asList = (x) => (Array.isArray(x) ? x : (x && Array.isArray(x.default) ? x.default : []));
 
 export const EVENT_SOURCES = {
-  field_r1: fieldR1, field_r2: fieldR2, field_r3: fieldR3, field_r4: fieldR4, field_r5: fieldR5, field_any: fieldAny,
+  field_r1: fieldR1, field_r2: fieldR2, field_r3: fieldR3, field_r4: fieldR4, field_r5: fieldR5, field_any: fieldAny, field_deep: fieldDeep,
   camp, night, city, ruin, shrine, quests, story,
 };
 

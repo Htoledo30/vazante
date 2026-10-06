@@ -7,6 +7,8 @@ export function smartAct(G) {
   const D = G.hero;
   const threats = foes.filter((f) => f.dist <= (f.intent?.reach ?? 0) && f.intent?.kind === 'attack');
   const charging = foes.find((f) => f.flags.charging && f.dist <= 1);
+  const hpF = G.hero.hp / Math.max(1, h.hpMax);
+  if (hpF < 0.25 && by('fugir') && CB.fleeChance(G) >= 40 && !G.combat.context.boss) return { action: 'fugir' };
   if (CB.hasStatus(h, 'caido') && by('levantar')) return { action: 'levantar' };
   if (CB.hasStatus(h, 'agarrado') && by('soltar')) return { action: 'soltar' };
   if (charging) {

@@ -318,8 +318,12 @@ await check('Menu de pausa abre e "Salvar e sair" volta ao título', async () =>
   if (!g) return SKIP('sem campanha');
   if ((await screenId()) === 'title') return SKIP('jogo ainda não sai do título');
   const hudBtn = page.locator('header.hud button', { hasText: /Menu|☰/ });
-  if (await hudBtn.count()) await hudBtn.first().click();
-  else await page.evaluate(() => window.__ICOR__.openPauseMenu());
+  // botões ignoram toques nos primeiros ~180 ms após renderizar (anti-toque-duplo): tenta de novo
+  for (let i = 0; i < 3 && !(await page.locator('.sh-pause').count()); i++) {
+    if (await hudBtn.count()) await hudBtn.first().click();
+    else await page.evaluate(() => window.__ICOR__.openPauseMenu());
+    await page.waitForTimeout(400);
+  }
   await page.locator('.sh-pause').waitFor({ timeout: 3000 });
   await shot('09-pausa');
   await tap('Salvar e sair');

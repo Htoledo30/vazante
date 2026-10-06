@@ -477,6 +477,7 @@ function evalKey(G, h, D, k, v, cond) {
     case 'inCity': return v ? !G.expedition : !!G.expedition;
     case 'unlocked': return !!G.city?.unlocked?.[v];
     case 'counter': return (G.campaign?.counters?.[v.k] || 0) >= (v.min ?? 1);
+    case 'deadCount': return (G.lineage?.dead || []).length >= v;
     default:
       if (!warned.has(k)) { warned.add(k); console.warn('[effects] condição desconhecida:', k); }
       return true;

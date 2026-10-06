@@ -476,7 +476,7 @@ export const VALID_OPS = ['hp', 'dread', 'corruption', 'coin', 'ichor', 'item', 
   'mutation', 'rep', 'chaga', 'time', 'light', 'food', 'flag', 'count', 'combat', 'event', 'reveal', 'mastery', 'learn', 'companion',
   'loseCompanion', 'unlock', 'journal', 'log', 'random', 'kill', 'stamina', 'attr', 'heal', 'questStep', 'fragment', 'siegeDefense'];
 export const VALID_CONDS = ['has', 'n', 'attr', 'min', 'flag', 'eq', 'notFlag', 'rep', 'coin', 'ichor', 'trait', 'notTrait', 'bg', 'corruption',
-  'dread', 'partOk', 'chaga', 'day', 'region', 'night', 'companion', 'level', 'boss', 'service', 'any', 'all', 'not'];
+  'dread', 'partOk', 'chaga', 'day', 'region', 'night', 'companion', 'level', 'boss', 'service', 'any', 'all', 'not', 'deadCount', 'inExpedition', 'talent', 'mutation', 'hpPct'];
 const POOLS = ['field', 'city', 'camp', 'ruin', 'shrine', 'night', 'story', 'quest'];
 const ATTRS = ['for', 'des', 'vig', 'von', 'ast'];
 const PARTS = ['cabeca', 'tronco', 'bracoD', 'bracoE', 'pernas'];

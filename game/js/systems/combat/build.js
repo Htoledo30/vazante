@@ -7,7 +7,7 @@ import { HERO_UID, HERO_PARTS } from './core.js';
 import { heroD } from './deps.js';
 
 /** Botões globais de balanceamento (dano inimigo). */
-export const GLOBAL_DMG = 0.85;
+export const GLOBAL_DMG = 0.8;
 export const GLOBAL_BOSS_DMG = 0.9;
 
 const ELITE_PREFIX = { humano: 'Veterano', fera: 'Alfa', enxame: 'Grande', morto: 'Inchado' };

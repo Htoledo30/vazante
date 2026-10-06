@@ -58,7 +58,7 @@ export const R1_ENEMIES = {
 
   cao_chaga: {
     id: 'cao_chaga', name: 'Cão da Chaga', region: 'r1', tier: 1,
-    hp: 22, eva: 12, acc: 5, speed: 120, morale: 35, dread: 2,
+    hp: 22, eva: 12, acc: 5, speed: 115, morale: 30, dread: 2,
     tags: ['fera', 'chaga'], weak: ['fogo'], resist: [],
     parts: {
       cabeca: { name: 'Mandíbula', hp: 9, armor: A(), role: 'head', vital: true },
@@ -67,10 +67,10 @@ export const R1_ENEMIES = {
     },
     intents: [
       { id: 'mordida', label: 'Mordida nas pernas', icon: '🦷', kind: 'attack', dmg: [4, 8], dtype: 'perf', reach: 0, w: 4, uses: ['cabeca'], part: [['pernas', 4], ['bracoD', 1], ['bracoE', 1]],
-        status: [{ id: 'sangrando', chance: 30 }, { id: 'infectado', chance: 8 }, { id: 'caido', chance: 12 }] },
+        status: [{ id: 'sangrando', chance: 30 }, { id: 'infectado', chance: 8 }, { id: 'caido', chance: 8 }] },
       { id: 'salto', label: 'Salto ao peito', icon: '⤴', kind: 'attack', dmg: [3, 6], dtype: 'impacto', reach: 0, w: 2, uses: ['pernas'], part: 'tronco', cd: 3,
-        status: [{ id: 'caido', chance: 25 }] },
-      { id: 'jugular', label: 'Vai na jugular', icon: '🩸', kind: 'attack', dmg: [8, 13], dtype: 'perf', reach: 0, w: 9, when: ['heroDown'], uses: ['cabeca'], part: [['cabeca', 2], ['tronco', 3]],
+        status: [{ id: 'caido', chance: 20 }] },
+      { id: 'jugular', label: 'Vai na jugular', icon: '🩸', kind: 'attack', dmg: [7, 11], dtype: 'perf', reach: 0, w: 9, when: ['heroDown'], uses: ['cabeca'], part: [['cabeca', 2], ['tronco', 3]],
         status: [{ id: 'sangrando', chance: 70, stacks: 2 }] },
       { id: 'uivo', label: 'Uiva para a matilha', icon: '🌕', kind: 'self', w: 1, cd: 5, when: ['allies'], dread: 3, special: 'uivo' },
       { id: 'rosnar', label: 'Rosna, recuando do fogo', icon: '🔥', kind: 'self', w: 0, time: 70, special: 'rosnar' },

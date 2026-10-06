@@ -70,8 +70,8 @@ export const SIEGE_DISTRICT_ORDER = ['taverna', 'boticario', 'ferreiro', 'guilda
 /** Melhorar qualidade: custo por qualidade atual -> próxima. */
 export const QUALITY_UP = {
   0: { coin: 20, mats: [['sucata', 2]], hours: 4 },
-  1: { coin: 60, mats: [['ferro_negro', 1], ['sucata', 2]], hours: 8 },
-  2: { coin: 160, mats: [['ferro_negro', 2], ['lasca_divina', 1]], hours: 24 },
+  1: { coin: 60, mats: [['sucata', 4], ['tendao', 1]], hours: 8 },
+  2: { coin: 160, mats: [['ferro_negro', 1], ['lasca_divina', 1]], hours: 24 },
 };
 
 /**

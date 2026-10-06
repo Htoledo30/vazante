@@ -11,7 +11,7 @@ export function setG(g) { G = g; return G; }
  * Cria uma campanha nova (sem herói — o herói é criado na tela de criação/linhagem).
  * Os sistemas acrescentam/consultam campos, mas a FORMA abaixo é o contrato.
  */
-export function newCampaign({ seed, houseName = 'Casa Vharn' } = {}) {
+export function newCampaign({ seed, houseName = 'Vharn' } = {}) {
   const s = (seed ?? (Date.now() ^ (Math.random() * 1e9))) >>> 0;
   G = {
     v: SAVE_VERSION,

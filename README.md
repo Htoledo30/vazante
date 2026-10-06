@@ -53,7 +53,7 @@ O codex completo está em **Como jogar** (título ou menu).
 - **Progressão:** nível bebendo Icor (+Corrupção), Dádivas, maestria por classe de arma (técnicas novas), traços, mutações, equipamento com qualidade, durabilidade e unção.
 - **Expedição:** cinco regiões, mapa persistente, luz, fome, peso, noite, acampamento, ninhos, carcaças, passagens, chefes.
 - **Cidade:** ferreiro, barbeiro-cirurgião, boticário, templo, quartel, guilda, taverna, antro oculto, casa (baú, melhorias), muralha. Eventos diários. Cercos em Chaga 30/60/90.
-- **Facções:** Sutura, Coroa, Guilda, Bebedores — reputação, missões, fragmentos do deus, cinco finais.
+- **Facções:** Sutura, Coroa, Guilda, Bebedores — reputação, missões, fragmentos do deus, seis finais no Coração (mais a queda de Valdrem e a extinção da casa).
 - **Linhagem:** herdeiros, relíquia da casa, cadáveres no mapa, Aberrações.
 
 Detalhes de design: [`docs/DESIGN.md`](docs/DESIGN.md). Contratos entre módulos: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -156,18 +156,29 @@ docs/
 
 ## Validação
 
-> **[PARA O INTEGRADOR COMPLETAR]** — registrar aqui o resultado final de `npm test`, `npm run check` e `npm run test:e2e` (PASS/FAIL/SKIP), dispositivo/navegador testados e screenshots relevantes.
+Executado no Windows 11 com Node 20+ e Playwright **WebKit** (motor do Safari) com o perfil **iPhone 13** (390×844, toque, DPR 3). **Não foi testado num iPhone físico** — ver Limitações.
 
-- `npm test`: _pendente_
-- `npm run check`: _pendente_
-- `npm run test:e2e`: _pendente_
-- Teste manual em iPhone real: _pendente_
+| Verificação | Comando | Resultado |
+|---|---|---|
+| Integração estática (imports/exports, telas, ids de dados, sem `Math.random` na lógica) | `npm run check` | 0 erros, 0 avisos |
+| Testes de lógica (combate, eventos, expedição, shell/save) | `npm test` | 4/4 arquivos passam |
+| Ponta a ponta no **build** servido em subpasta `/icor/` | `npm run test:e2e` | 22 PASS · 0 FAIL · 0 SKIP |
+| Todas as telas/abas com estado preparado (cidade, 6 abas da ficha, nível, mutação, 9 serviços e suas abas, mapa, facções, diário, cerco, Coração, final, herdeiros) | `node tests/screens.mjs` | 49 telas, 0 erros de página, sem rolagem horizontal, botões ≥ 35 px |
+| Bot que joga pela interface (toques reais: criação → cidade → expedições → combates → morte → herdeiro) | `node tests/playthrough.mjs 350 <seed>` | seeds 3, 4 e 5: 0 erros; mortes, herdeiros e retorno à cidade funcionando |
+| Balanceamento (bot "jogador médio", 40 lutas por encontro) | `node tests/sim-balance.mjs` | comuns da região 1: 88–100% de vitória com 41–85% de vida restante; chefe Mãe-Colheita: ~38% sem preparo |
+
+O e2e cobre: carregamento em subpasta, metas iOS (viewport-fit, apple-touch-icon, standalone), manifest e ícones, service worker no escopo certo, botões ≥ 44 px, ajuda/configurações/backup/instalar, nova campanha → intro → criação → cidade, menu de pausa → "Salvar e sair", recarregar e **Continuar** no mesmo ponto, backup `ICOR1:`, **offline** após o primeiro carregamento (servidor derrubado), **atualização segura** (nova versão espera e é aplicada no título preservando a campanha), nenhum 404, nenhum erro de console.
+
+Os testes Node cobrem: todos os 41 inimigos lutam até o fim sem travar, salvar/restaurar no meio da luta, itens e troca de arma em combate, formato de todos os 166 eventos + bot jogando 400 eventos, mapas determinísticos e conexos, bot jogando campanhas inteiras pelos sistemas (expedições, mortes, herdeiros, cadáveres), escolha da tela de retomada (combate, saque, herdeiros, final…), backup exportar → importar, atualização automática após 3 adiamentos, manifest/metas iOS/caminhos relativos, service worker (cache primeiro e offline) e o build.
+
+Screenshots: `tests/shots/` (e2e) e `tests/shots/screens/` (todas as telas).
 
 ## Limitações conhecidas
 
-> **[PARA O INTEGRADOR COMPLETAR]** — revisar após a integração.
-
+- **Não testado em iPhone físico.** A validação usa o WebKit do Playwright com o perfil do iPhone 13; diferenças reais do Safari no iOS (teclado virtual, gestos do sistema, áudio após bloqueio da tela) podem aparecer.
 - No iPhone, páginas web não vibram (`navigator.vibrate` não existe no Safari); a opção de vibração vale para Android.
-- A chave de silêncio do iPhone também silencia o jogo (proposital).
+- A chave de silêncio do iPhone também silencia o jogo (proposital). O áudio só liga depois do primeiro toque (regra do iOS).
+- Arte mínima: ícones/emoji e tipografia; o foco é mecânica e texto. Sons são sintetizados (Web Audio), sem trilha gravada.
+- Balanceamento ajustado por simulação, não por jogadores: chefes são feitos para exigir preparo (Icor, unções, técnicas, consumíveis); um personagem nível 1 sem preparo perde a maioria das vezes.
 - O Playwright/WebKit no Windows não simula "offline" com service worker via `setOffline`; o teste e2e corta a rede derrubando o servidor.
-- Save só no aparelho (sem nuvem); use Backup para levar a campanha a outro aparelho.
+- Save só no aparelho (sem nuvem), um slot; use Backup para levar a campanha a outro aparelho. Safari e app instalado têm saves separados.

@@ -63,9 +63,9 @@ export function startCombat(G, spec = {}) {
   if (ally) ally.next = R.int(10, 50);
   for (const a of foes(G)) a.next = Math.round(R.int(15, 70) * enemyTimeMult(a));
   if (spec.ambush === 'enemy') {
-    hero.next += 70;
+    hero.next += 45;
     addStatus(G, hero, 'desprevenido', { turns: 1 });
-    for (const a of foes(G)) a.next = R.int(0, 30);
+    for (const a of foes(G)) a.next = R.int(0, 35);
     log(G, 'EMBOSCADA! Eles atacam primeiro.', 'bad');
   } else if (spec.ambush === 'hero') {
     hero.next = 0;

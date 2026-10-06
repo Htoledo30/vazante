@@ -35,7 +35,7 @@ export function campPlan(G, plan = {}) {
   const fire = !!plan.fire && o.fire.ok;
   const ambush = EX.ambushChance(G, { camp: true, fire, watch: !!plan.watch, safeSite: o.safeSite, hours });
   const restMult = plan.watch ? 0.5 : 1;
-  const healPerH = (D.hpMax || 50) * 0.02 * (1 + (D.mods?.camp_heal || 0) / 100) * (fire ? 1.35 : 1) * restMult;
+  const healPerH = (D.hpMax || 50) * 0.03 * (1 + (D.mods?.camp_heal || 0) / 100) * (fire ? 1.35 : 1) * restMult;
   const heal = Math.round(healPerH * hours * (EX.hungerLevel(G) >= 2 ? 0.5 : 1));
   const dread = -Math.round(hours * (fire ? 2 : 1) * restMult + (plan.pray ? 8 : 0) + (plan.cook && fire ? 5 : 0));
   const warnings = [];
