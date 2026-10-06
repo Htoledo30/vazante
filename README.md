@@ -6,6 +6,8 @@ RPG de **dark fantasy brutal** para iPhone, jogado no navegador e instalável co
 >
 > Você é de uma casa decadente de **Carniceiros**: saqueadores que entram no Ermo para colher o sangue do deus.
 
+**Jogar agora:** https://htoledo30.github.io/vazante/ (abra no Safari do iPhone → Compartilhar → Adicionar à Tela de Início).
+
 **Conteúdo adulto:** violência explícita, mutilação, horror corporal, fanatismo religioso.
 
 ---
@@ -170,6 +172,8 @@ Executado no Windows 11 com Node 20+ e Playwright **WebKit** (motor do Safari) c
 O e2e cobre: carregamento em subpasta, metas iOS (viewport-fit, apple-touch-icon, standalone), manifest e ícones, service worker no escopo certo, botões ≥ 44 px, ajuda/configurações/backup/instalar, nova campanha → intro → criação → cidade, menu de pausa → "Salvar e sair", recarregar e **Continuar** no mesmo ponto, backup `ICOR1:`, **offline** após o primeiro carregamento (servidor derrubado), **atualização segura** (nova versão espera e é aplicada no título preservando a campanha), nenhum 404, nenhum erro de console.
 
 Os testes Node cobrem: todos os 41 inimigos lutam até o fim sem travar, salvar/restaurar no meio da luta, itens e troca de arma em combate, formato de todos os 166 eventos + bot jogando 400 eventos, mapas determinísticos e conexos, bot jogando campanhas inteiras pelos sistemas (expedições, mortes, herdeiros, cadáveres), escolha da tela de retomada (combate, saque, herdeiros, final…), backup exportar → importar, atualização automática após 3 adiamentos, manifest/metas iOS/caminhos relativos, service worker (cache primeiro e offline) e o build.
+
+Publicação conferida: o workflow "Publicar ICOR" do GitHub Actions passou (testes + build) e o endereço publicado foi aberto no WebKit com perfil de iPhone 13 — título carrega, service worker ativo no escopo `/vazante/`, Nova campanha abre a introdução, sem erros de console.
 
 Screenshots: `tests/shots/` (e2e) e `tests/shots/screens/` (todas as telas).
 
