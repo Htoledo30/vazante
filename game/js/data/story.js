@@ -1,147 +1,208 @@
-// Narrativa: introdução, moradores desaparecidos, memórias de Aurélia, falas e finais.
+// História: intro, legados da casa, atos, fragmentos, finais e epílogos.
+// Dono: Área D. Lógica em systems/campaign.js.
 
+export const HOUSE_NAMES = ['Vharn', 'Morrowgaunt', 'Kessel', 'Ardo', 'Salgueda', 'Corvara', 'Blackmere', 'Ruthven', 'Dorne', 'Ystrel', 'Malvas', 'Grieve'];
+
+/** Telas da introdução (curtas). Cada uma: { id, title, text, kind:'text'|'house'|'legacy'|'go' }. */
 export const INTRO = [
-  { art: '🌊', title: 'Aurélia', text: 'Há trezentos anos, a cidade de Aurélia afundou numa única noite. Em Salgema, a vila no penhasco, todos cresceram ouvindo que o mar a engoliu por soberba.' },
-  { art: '🏝', title: 'A Vazante', text: 'Há quarenta dias, o mar começou a recuar. Toda manhã a água se retira da baía por algumas horas — a Vazante — e as torres de Aurélia emergem, cobertas de cracas.' },
-  { art: '🕯', title: 'Os Desaparecidos', text: 'Com a Vazante vieram coisas. Redes rasgadas, barcos virados. Seis moradores desceram às ruas afogadas e não voltaram.' },
-  { art: '🔱', title: 'A Vazanteira', text: 'A Avó Zélia te entregou o arpão da sua mãe. "Desça, traga quem puder, e volte antes da maré." Hoje, o mar baixa de novo.' },
+  {
+    id: 'queda', kind: 'text', title: 'A Queda',
+    text: 'Há trinta anos, um deus caiu do céu.\n\nNão morreu. Apodrece. Seu cadáver é uma cordilheira de carne no centro do Ermo, e do corpo escorre o Icor — sangue dourado que dá força a quem bebe e transforma quem bebe demais.',
+    btn: 'Continuar',
+  },
+  {
+    id: 'chaga', kind: 'text', title: 'A Chaga',
+    text: 'A podridão se espalha. Corrompe a terra, os bichos, os mortos. Chamam isso de Chaga.\n\nValdrem é a última cidade murada. Quando a Chaga chegar à muralha de vez, não haverá mais nada.',
+    btn: 'Continuar',
+  },
+  {
+    id: 'casa', kind: 'house', title: 'Sua Casa',
+    text: 'Você nasceu numa casa de Carniceiros: gente que entra no Ermo e volta com o sangue do deus em frascos. Ou não volta.\n\nQual é o nome da sua casa?',
+  },
+  {
+    id: 'legado', kind: 'legacy', title: 'O que restou',
+    text: 'Seu pai morreu no Ermo. Seu avô também. O que a Casa {house} deixou para você?',
+  },
+  {
+    id: 'ir', kind: 'go', title: 'O Primeiro',
+    text: 'A Chaga avança um pouco todo dia. Alguém da Casa {house} precisa entrar no Ermo.\n\nQuando você morrer — e vai — seu sangue continua.',
+    btn: 'Escolher quem vai primeiro',
+  },
 ];
 
-export const VILLAGERS = {
-  tiao: { name: 'Tião', title: 'o mergulhador', district: 1, icon: '🤿', perk: 'Desbloqueia o ofício Mergulhadora.', thanks: '"Achei que ia virar peixe lá embaixo. Vem, te ensino a respirar debaixo d\'água."' },
-  lia: { name: 'Lia', title: 'a menina dos mapas', district: 1, icon: '🗺', perk: '+1 opção nas recompensas de combate.', thanks: '"Eu desenhei TUDO que vi lá embaixo! Quer ver?"' },
-  joaquim: { name: 'Joaquim', title: 'o pescador', district: 2, icon: '🐟', perk: 'Comece cada expedição com 2 Peixes Secos.', thanks: '"Devo a vida a você. E peixe seco nunca vai te faltar."' },
-  cida: { name: 'Dona Cida', title: 'a costureira', district: 2, icon: '🧵', perk: 'Comece cada expedição vestindo a Capa de Algas.', thanks: '"Que trapo é esse que você veste? Deixa comigo."' },
-  bento: { name: 'Mestre Bento', title: 'o sineiro velho', district: 3, icon: '🔔', perk: 'Comece cada expedição com um Sino de Mão.', thanks: '"Os sinos de lá cantam o nome dela. Leve um dos meus — ele canta o seu."' },
-  ana: { name: 'Ana', title: 'a contrabandista', district: 3, icon: '🗝', perk: 'Mercador Tobias: preços −20% e um item a mais.', thanks: '"Conheço o Tobias desde antes dele se afogar. Vou falar bem de você."' },
-};
-
-export const MEMORIES = [
-  { id: 1, title: 'O Mercado', text: 'Peixes de prata, cantoras nas varandas. A maré subia e descia ao som de um coro. Aurélia não temia o mar: conversava com ele.' },
-  { id: 2, title: 'Os Servos', text: 'Nos porões, os servos remavam as barcaças das cantoras. Não tinham voz no coro. Alguns aprenderam a cantar escondidos.' },
-  { id: 3, title: 'A Concha-Mãe', text: 'A Concha-Mãe ficava no altar da catedral. Quem a segurasse e cantasse os Três Versos podia mover o oceano.' },
-  { id: 4, title: 'A Noite do Festival', text: 'Na noite do Grande Festival, um servo chamado Salvador roubou a Concha. Sem a voz, o mar avançou. As cantoras cantaram até se afogar.' },
-  { id: 5, title: 'A Fuga', text: 'Os servos fugiram de barco para o penhasco, levando a Concha. Ali fundaram uma vila e a chamaram de Salgema — a joia de sal.' },
-  { id: 6, title: 'Maren', text: 'A mais jovem cantora, Maren, ficou no altar. Jurou que cantaria até o mar devolver a cidade, nem que levasse séculos.' },
-  { id: 7, title: 'O Preço', text: 'Se o mar devolver Aurélia por inteiro, a água que a cobre precisa ir para algum lugar. Uma Grande Ressaca cobriria a costa inteira.' },
-  { id: 8, title: 'A Linhagem', text: 'Salvador teve uma filha com uma cantora. A criança cresceu em Salgema. O mar ainda reconhece o sangue que um dia cantou com ele.' },
+/**
+ * Legados da casa (bônus inicial). effects: aplicados na campanha (ao criar o primeiro herói).
+ * heroEffects: aplicados a TODO herdeiro da casa ao nascer. houseTrait: traço D aplicado a todo herdeiro.
+ */
+export const LEGACIES = [
+  {
+    id: 'divida', name: 'Uma dívida com a Guilda',
+    desc: 'Ouro emprestado, juros de sangue. +140 moedas agora. A Guilda cobra 200 até o dia 25.',
+    effects: [{ op: 'coin', n: 140 }, { op: 'rep', f: 'guilda', n: -5 }],
+    loan: { owe: 200, dueDay: 25 },
+  },
+  {
+    id: 'sangue', name: 'Sangue de Bebedor',
+    desc: 'Sua mãe bebia. Você nasceu com olhos meio dourados. +3 Icor, Bebedores te conhecem. A Sutura, também.',
+    effects: [{ op: 'ichor', n: 3 }, { op: 'rep', f: 'bebedores', n: 15 }, { op: 'rep', f: 'sutura', n: -10 }, { op: 'unlock', k: 'antro' }],
+    houseTrait: 'casa_dourada',
+  },
+  {
+    id: 'juramento', name: 'Juramento à Sutura',
+    desc: 'Sua avó foi freira. A Igreja lembra. Água benta, e herdeiros que aguentam o escuro.',
+    effects: [{ op: 'rep', f: 'sutura', n: 15 }, { op: 'item', id: 'agua_benta', n: 2 }, { op: 'item', id: 'bandagem', n: 2 }],
+    houseTrait: 'casa_devota',
+  },
+  {
+    id: 'patente', name: 'Uma velha patente da Guarda',
+    desc: 'Seu pai foi sargento antes de ser carniceiro. A Coroa te deve, e a muralha é mais forte.',
+    effects: [{ op: 'rep', f: 'coroa', n: 15 }, { op: 'siegeDefense', n: 10 }, { op: 'item', id: 'racao', n: 3 }],
+    houseTrait: 'casa_soldada',
+  },
+  {
+    id: 'mapas', name: 'Os mapas do avô',
+    desc: 'Pergaminhos manchados de Icor. Trilhas dos Campos e da Floresta que ninguém mais conhece.',
+    effects: [{ op: 'mapReveal', region: 'r1', n: 5 }, { op: 'mapReveal', region: 'r2', n: 3 }, { op: 'item', id: 'tocha', n: 2 }],
+    houseTrait: 'casa_batedora',
+  },
+  {
+    id: 'acougue', name: 'O açougue da família',
+    desc: 'Ganchos, cutelos, carne salgada. Seus herdeiros sabem abrir um corpo.',
+    effects: [{ op: 'item', id: 'racao', n: 4 }, { op: 'item', id: 'sebo', n: 2 }, { op: 'coin', n: 40 }],
+    houseTrait: 'casa_carniceira',
+  },
 ];
 
-export const VERSOS = [
-  { title: 'Primeiro Verso', text: '"Mar que dorme sob a pedra, ouve a voz que te nomeia."', from: 'carranca' },
-  { title: 'Segundo Verso', text: '"Coral que cresce, sino que dobra, devolve o que a noite tomou."', from: 'gardener' },
-  { title: 'Terceiro Verso', text: '"Quem canta inteiro, governa a maré — e a maré governa quem canta."', from: 'sineiro' },
+/** Traços de casa e outros traços de D (registrados em TRAITS de A por systems/campaign.js, se ausentes). */
+export const D_TRAITS = {
+  casa_dourada: { id: 'casa_dourada', name: 'Sangue Dourado', kind: 'mixed', desc: 'Beber Icor dói menos. A Sutura sente o cheiro.', mods: { corrResist: 15, dreadResist: -5 } },
+  casa_devota: { id: 'casa_devota', name: 'Criado na Fé', kind: 'good', desc: 'Orações de criança ainda funcionam no escuro.', mods: { dreadResist: 15 } },
+  casa_soldada: { id: 'casa_soldada', name: 'Filho de Soldado', kind: 'good', desc: 'Sabe segurar uma linha.', mods: { block: 10, staminaMax: 1 } },
+  casa_batedora: { id: 'casa_batedora', name: 'Olho de Batedor', kind: 'good', desc: 'Lê trilhas como quem lê cartas.', mods: { scout: 15, ambush: 10 } },
+  casa_carniceira: { id: 'casa_carniceira', name: 'Mão de Açougueiro', kind: 'good', desc: 'Sabe onde a carne cede.', mods: { sever: 8, loot: 10 } },
+  sangrado: { id: 'sangrado', name: 'Sangrado', kind: 'bad', desc: 'O barbeiro tirou sangue podre. E sangue bom junto.', mods: { hpMaxPct: -15 } },
+  marcado_faccao: { id: 'marcado_faccao', name: 'Marcado', kind: 'bad', desc: 'Uma facção te quer morto. Todos sabem.', mods: {} },
+  veterano_cerco: { id: 'veterano_cerco', name: 'Veterano da Muralha', kind: 'good', desc: 'Sobreviveu a uma horda nas ameias.', mods: { dreadResist: 10, hpMax: 5 } },
+  devorador: { id: 'devorador', name: 'Devorador de Deus', kind: 'mixed', desc: 'Comeu um pedaço do deus. Ele ainda está lá dentro.', mods: { corrResist: -10 } },
+};
+
+/** Atos: definidos por chefes derrotados. */
+export const ACTS = [
+  { act: 1, minBosses: 0, title: 'Ato I — Cinza', text: 'Os Campos de Cinza são a porta do Ermo. A Mãe-Colheita guarda a estrada.' },
+  { act: 2, minBosses: 1, title: 'Ato II — Cordas', text: 'Os mortos pendem das árvores. Alguém coroou um rei na Floresta.' },
+  { act: 3, minBosses: 3, title: 'Ato III — Sal e Água', text: 'Sob o sal, sob a água: as feridas mais antigas do deus.' },
+  { act: 4, minBosses: 4, title: 'Ato IV — O Cadáver', text: 'Só resta entrar na carne. O Coração ainda bate.' },
 ];
 
-export const BOSS_INTRO = {
-  carranca: { title: 'A Carranca', text: 'A proa de um navio-palácio, maior que uma casa, ergue-se da lama. A figura de madeira abre os olhos. Correntes a prendem ao casco.' },
-  gardener: { title: 'O Jardineiro', text: 'Entre os canteiros de coral, algo se levanta: um colosso de galhos rubros que poda o mundo para que nada além dele cresça.' },
-  sineiro: { title: 'O Sineiro', text: 'O campanário maior está de pé. Lá dentro, uma figura encapuzada abraça uma corda e sorri. "Ela pediu que eu chamasse a maré."' },
-  maren: { title: 'Maren, a Última Cantora', text: 'No altar afogado, uma moça de cabelos de alga canta sem parar há trezentos anos. Ela para. Olha para você. "Você tem a voz dele."' },
+/** Chefe -> fragmento. */
+export const BOSS_FRAGMENT = { r1: 'ventre', r2: 'mao', r3: 'olho', r4: 'lingua' };
+export const BOSS_NAMES = { r1: 'Mãe-Colheita', r2: 'O Rei Galhado', r3: 'O Bispo Costurado', r4: 'A Voz Submersa', r5: 'O Coração' };
+export const NEXT_REGION = { r1: 'r2', r2: 'r3', r3: 'r4', r4: 'r5' };
+
+export const FRAGMENTS = {
+  ventre: { id: 'ventre', item: 'fragmento_ventre', name: 'Ventre do Deus', desc: 'Um útero de pedra quente. Algo dentro se mexe quando chove.' },
+  mao: { id: 'mao', item: 'fragmento_mao', name: 'Mão do Deus', desc: 'Dedos de osso dourado que se fecham sozinhos à noite.' },
+  olho: { id: 'olho', item: 'fragmento_olho', name: 'Olho do Deus', desc: 'Do tamanho de um punho. Ele te segue pela sala.' },
+  lingua: { id: 'lingua', item: 'fragmento_lingua', name: 'Língua do Deus', desc: 'Ainda úmida. Às vezes forma palavras que você entende.' },
 };
 
-// Diálogos condicionais por NPC. A primeira fala elegível não vista é mostrada com destaque.
-// cond recebe (meta) e retorna boolean.
-export const NPCS = {
-  zelia: {
-    name: 'Avó Zélia', role: 'a anciã', icon: '👵',
-    story: [
-      { id: 'z_intro', cond: (m) => m.runs >= 1, text: 'O mar te devolveu inteira. Bom. Amanhã a maré baixa de novo — desça, e traga de volta quem puder. Seis dos nossos ainda estão lá.' },
-      { id: 'z_death', cond: (m) => m.deaths >= 1, text: 'Te acharam na areia, respirando, com a maré já cheia. A maré não devolve ninguém, menina. Ela devolveu você. Pense nisso.' },
-      { id: 'z_mem1', cond: (m) => m.memoriesFound >= 1, text: 'Isso que brilha na sua mão... é uma memória da cidade. Deixe comigo: eu sei ler essas coisas. Cada uma que você me trouxer, eu te conto o que diz.' },
-      { id: 'z_boss1', cond: (m) => m.bosses.includes('carranca'), text: 'A Carranca era a proa do navio da Rainha. Se ela te deu um verso, guarde-o na memória. E não o cante em voz alta. Ainda não.' },
-      { id: 'z_boss2', cond: (m) => m.bosses.includes('gardener'), text: 'Dois versos. A canção está voltando para você, não está? Às vezes eu te ouço cantarolando enquanto dorme.' },
-      { id: 'z_boss3a', cond: (m) => m.bosses.includes('sineiro') && m.memoriesGiven < 4, text: 'Há uma coisa que eu deveria ter te contado há muito tempo... mas ainda não tenho coragem. Traga mais memórias da cidade. (Entregue 4 memórias à Zélia.)' },
-      { id: 'z_concha', cond: (m) => m.bosses.includes('sineiro') && m.memoriesGiven >= 4, gift: 'concha', text: 'Os fundadores de Salgema eram servos de Aurélia. Roubaram a Concha-Mãe — a voz que governa o mar — e a cidade afundou. Minha família a guarda há dez gerações. Tome. Devolva-a a quem ela pertence... ou não. A escolha é sua.' },
-      { id: 'z_end', cond: (m) => m.endings.length >= 1, text: 'Você voltou da catedral. O mar está diferente — eu sinto nos ossos. Se quiser descer de novo, as Marés Vivas te esperam, mais bravas do que nunca.' },
-    ],
-    idle: [
-      'Coma alguma coisa antes de descer. Ninguém luta bem de barriga vazia.',
-      'Sua mãe também ouvia a cidade cantar. Ela nunca me contou o que ouvia.',
-      'Quando a água começar a subir, não seja teimosa. Recue para o alto.',
-      'Os velhos dizem que o sal guarda memória. Eu acredito.',
-    ],
-  },
-  ilda: {
-    name: 'Ilda', role: 'a ferreira', icon: '⚒', building: 'forja',
-    story: [
-      { id: 'i_intro', cond: (m) => m.runs >= 1, text: 'Traga conchas e eu forjo o que precisar. Bronze afogado é o melhor metal que já trabalhei — não enferruja nunca mais.' },
-      { id: 'i_boss1', cond: (m) => m.bosses.includes('carranca'), text: 'Correntes da Carranca! Com isso consigo fazer armas que nem sonhei. Volte quando tiver conchas.' },
-    ],
-    idle: ['Arma boa é arma que volta pra mão. Fale isso pro seu arpão.', 'O bronze de Aurélia canta quando eu bato nele. Arrepia.', 'Empurrar um caranguejo contra a parede dói mais nele do que qualquer lâmina.'],
-  },
-  marisol: {
-    name: 'Marisol', role: 'a boticária', icon: '🌿', building: 'botica',
-    story: [
-      { id: 'm_intro', cond: (m) => m.runs >= 1, text: 'Algas, sal e um pouco de paciência: é isso que fecha ferida. Quer que eu prepare algo para a próxima descida?' },
-    ],
-    idle: ['Veneno de pólipo passa com peixe seco. Sério.', 'Não beba a água de lá. Nem pensar.', 'Fogo e água não se misturam — a não ser que alguém derrame óleo.'],
-  },
-  anselmo: {
-    name: 'Frei Anselmo', role: 'o arquivista', icon: '📜', building: 'arquivo',
-    story: [
-      { id: 'a_intro', cond: (m) => m.runs >= 1, text: 'Cada criatura que você derrota me conta algo. Anoto tudo aqui. Estudar o inimigo é metade da vitória — literalmente: você bate mais forte no que conhece.' },
-      { id: 'a_mem', cond: (m) => m.memoriesGiven >= 2, text: 'A Zélia me mostrou as memórias. Servos, uma concha, um roubo... As crônicas da vila contam outra história. Alguém mentiu, e não foi o mar.' },
-    ],
-    idle: ['Um inimigo estudado (6 derrotas) recebe +1 de dano de você.', 'Os autômatos foram feitos para tocar sinos, não para lutar. Mas afundam igual.', 'Aurélia tinha mais sinos do que casas. Por quê?'],
-  },
-  gaspar: {
-    name: 'Gaspar', role: 'o barqueiro', icon: '⛵', building: 'cais',
-    story: [
-      { id: 'g_intro', cond: (m) => m.runs >= 1, text: 'Se você abrir caminho lá embaixo, eu sei levar o barco por cima. Atalhos custam conchas — remo não é de graça.' },
-    ],
-    idle: ['Maré de Enchente: a água sobe rodada após rodada. De Vazante: o contrário. Leia a Tábua antes de entrar.', 'Já vi uma enguia encalhada morrer de vergonha.', 'Quem não sabe nadar não discute com a água funda.'],
-  },
-  benta: {
-    name: 'Dona Benta', role: 'a taverneira', icon: '🍺', building: 'taverna',
-    story: [
-      { id: 'b_intro', cond: (m) => m.runs >= 1, text: 'Os pescadores pagam bem por quem faz trabalho difícil lá embaixo. Pegue um contrato antes de descer — conchas extras nunca fizeram mal a ninguém.' },
-    ],
-    idle: ['Dizem que pesados afundam como pedra na água funda.', 'Um bêbado jurou que viu uma água-viva encalhada chorando quando a maré baixou.', 'Tem gente que joga barril de óleo nos outros. Eu só sirvo.', 'Choque na água pega todo mundo que estiver molhado. Todo mundo.', 'O Capitão Cracas demora para atirar. Quem sabe se mexer, sobrevive.'],
-  },
+/** Texto ao matar cada chefe (journal + aviso). */
+export const BOSS_TEXT = {
+  r1: 'A Mãe-Colheita caiu. Dentro da palha, um ventre de pedra ainda morno. Os Campos respiram menos podre.',
+  r2: 'O Rei Galhado tombou com um estalo de mil galhos. Na coroa, uma mão de osso dourado agarrava o céu.',
+  r3: 'O Bispo Costurado desfez-se em fios. No altar de sal, um olho enorme te encarava.',
+  r4: 'A Voz Submersa calou. A água de Vel-Maren baixou um palmo. Na lama, uma língua ainda se mexia.',
+  r5: 'O Coração parou de lutar. Ainda bate. Na sua frente. Esperando.',
 };
 
+/**
+ * Finais. cond (formato de checkCond de A + extensões de D avaliadas por campaign.js):
+ *   fragGiven:{f, n}   fragmentos entregues à facção f
+ *   fragKept:n         fragmentos guardados ou devorados (não entregues)
+ *   questDone:f        linha de missão concluída
+ * sacrifice: o herói morre no final.
+ */
 export const ENDINGS = {
-  silencio: {
-    title: 'Silêncio', icon: '🌑',
-    text: [
-      'Maren cai sobre o altar e, pela primeira vez em trezentos anos, a catedral fica em silêncio.',
-      'Na manhã seguinte, o mar volta à baía e não recua mais. Aurélia afunda para sempre na escuridão.',
-      'Salgema está salva. Ninguém pergunta o que você viu lá embaixo, e você não conta.',
-      'Às vezes, nas noites sem vento, você ouve um coro distante vindo do fundo da baía. Ele não canta mais o nome de ninguém.',
-    ],
+  sutura: {
+    id: 'sutura', name: 'A Sutura', faction: 'sutura', icon: '✚',
+    choice: 'Costurar o Coração com a Agulha da Madre',
+    req: 'Sutura ≥ 50 e linha da Sutura concluída (ou 2 fragmentos entregues a ela).',
+    cond: { any: [{ questDone: 'sutura' }, { all: [{ rep: { f: 'sutura', min: 50 } }, { fragGiven: { f: 'sutura', n: 2 } }] }] },
+    text: 'Você costura. Cada ponto custa um dedo de pele. O Coração aceita a linha.\n\nNo Ermo, a cordilheira de carne geme e se fecha. O deus desperta — remendado, cego, faminto de gratidão.',
   },
-  concha: {
-    title: 'Maré Mansa', icon: '🐚',
-    text: [
-      'Você estende a Concha-Mãe. Maren hesita — e então a segura contra o peito, como quem reencontra um filho.',
-      'Ela canta uma canção que você nunca ouviu, mas conhece. Os afogados se deitam nas ruas e fecham os olhos. O mar respira fundo.',
-      'A Grande Ressaca nunca vem. A maré volta devagar, mansa, e Aurélia passa a surgir só nas luas novas — um memorial de pedra e coral.',
-      'A Avó Zélia chora quando você conta. "Dez gerações esperando alguém com coragem de devolver." Salgema, enfim, faz as pazes com o mar.',
-    ],
+  coroa: {
+    id: 'coroa', name: 'Fogo e Cinza', faction: 'coroa', icon: '♜',
+    choice: 'Acender a pólvora sagrada da Coroa',
+    req: 'Coroa ≥ 50 e linha da Coroa concluída (ou 2 fragmentos entregues a ela).',
+    cond: { any: [{ questDone: 'coroa' }, { all: [{ rep: { f: 'coroa', min: 50 } }, { fragGiven: { f: 'coroa', n: 2 } }] }] },
+    text: 'O fogo começa dentro do Coração e não para. Por quarenta dias o Ermo queima.\n\nDo deus sobra cinza. Do Ermo, também. A Coroa chama isso de vitória.',
   },
-  versos: {
-    title: 'Coroa de Sal', icon: '👑',
-    text: [
-      'Você canta os Três Versos. Sua voz cobre a de Maren, e o oceano inteiro se volta para ouvir você.',
-      'Maren se desfaz em espuma. A Grande Ressaca para no meio do caminho e recua, obediente.',
-      'Salgema nunca mais conhece fome: os cardumes vêm quando você chama, as tempestades passam longe.',
-      'Mas toda noite a maré sobe até a sua porta e espera. Você não consegue mais ficar longe da água. A coroa de sal é leve — e não sai mais.',
-    ],
+  guilda: {
+    id: 'guilda', name: 'O Leilão', faction: 'guilda', icon: '⚖',
+    choice: 'Arrancar o Coração e vendê-lo à Guilda',
+    req: 'Guilda ≥ 50 e linha da Guilda concluída (ou 2 fragmentos entregues a ela).',
+    cond: { any: [{ questDone: 'guilda' }, { all: [{ rep: { f: 'guilda', min: 50 } }, { fragGiven: { f: 'guilda', n: 2 } }] }] },
+    text: 'O Coração vai para um baú forrado de chumbo. Os navios da Guilda partem na maré da manhã.\n\nValdrem é abandonada a quem não pagou passagem. Em algum porto distante, alguém compra um deus.',
+  },
+  bebedores: {
+    id: 'bebedores', name: 'O Gole', faction: 'bebedores', icon: '☩',
+    choice: 'Beber o Coração',
+    req: 'Bebedores ≥ 50 e (linha dos Bebedores concluída ou Corrupção ≥ 60).',
+    cond: { all: [{ rep: { f: 'bebedores', min: 50 } }, { any: [{ questDone: 'bebedores' }, { corruption: { min: 60 } }] }] },
+    text: 'É quente. É doce. É tudo.\n\nSua pele se abre como uma flor. Valdrem acorda com um novo deus de pé sobre o Ermo — e ele tem o seu rosto.',
+  },
+  enterro: {
+    id: 'enterro', name: 'O Enterro', faction: null, icon: '⚱',
+    choice: 'Deitar-se com o deus e fechar a terra sobre os dois',
+    req: 'Conhecer o Rito do Enterro e ter guardado ou devorado 3 fragmentos. Exige sua vida.',
+    cond: { all: [{ flag: 'rito_enterro' }, { fragKept: 3 }] },
+    sacrifice: true,
+    text: 'Deuses não se matam. Se enterram.\n\nVocê põe os pedaços de volta no peito do deus e deita junto. A terra de sal fecha por cima. Ninguém reza pelo seu nome. A Chaga para.',
+  },
+  carniceiro: {
+    id: 'carniceiro', name: 'O Carniceiro', faction: null, icon: '🗡',
+    choice: 'Cortar o Coração em pedaços, sozinho',
+    req: 'Sempre possível.',
+    cond: null,
+    text: 'Sem agulha, sem fogo, sem compradores. Só um cutelo e muitas horas.\n\nO Coração para de bater no quinto dia. A Chaga para de crescer — mas não recua. Valdrem sobrevive num mundo que continua podre.',
   },
 };
 
-export const RUMORS = [
-  'Pesados (autômatos, ouriços, guardiões de sal) afundam instantaneamente na água funda.',
-  'Afogados que morrem dentro d\'água se levantam uma vez. Mate-os no seco ou com fogo.',
-  'Enguias e águas-vivas encalham quando a maré baixa: ficam paradas e indefesas.',
-  'O choque se espalha por toda a água conectada — inclusive até você, se estiver molhada.',
-  'Óleo flutua: até sobre a água ele pega fogo.',
-  'Ataques de arremesso miram o quadrado; os outros acompanham o monstro se ele for empurrado.',
-  'Colisões ignoram armadura. Caranguejos que batem em algo ficam virados.',
-  'Golpear um sino atordoa quem estiver ao redor dele (menos você).',
-  'A Tábua de Marés mostra o nível da água das próximas rodadas. Planeje o caminho pelo alto.',
-  'Os reforços chegam pelas bordas: quadrados marcados com ⚠ serão ocupados na próxima rodada. Fique em cima para impedir (você leva 1 de dano).',
-  'Água funda drena 1 de Fôlego por rodada. Sem Fôlego, você se afoga.',
-  'Atordoar um inimigo cancela o ataque que ele estava preparando.',
+export const FALL = {
+  id: 'fall', name: 'A Queda de Valdrem', icon: '☠',
+  text: 'A Chaga chegou à muralha e não parou. Os sinos tocaram até os sineiros mudarem.\n\nValdrem caiu. A Casa {house} acabou com ela.',
+};
+
+export const EXTINCT = {
+  id: 'extinct', name: 'Fim da Linhagem', icon: '⚰',
+  text: 'Não sobrou ninguém com o sangue da Casa {house}. A porta foi pregada por fora.\n\nA Chaga continuou sem você.',
+};
+
+/** Epílogo: blocos condicionais (cond no formato de D/A). Mostra no máximo ~6 linhas. */
+export const EPILOGUE = [
+  { cond: { chaga: { max: 40 } }, text: 'A Chaga recuou para longe da muralha. Crianças voltaram a brincar no fosso.' },
+  { cond: { chaga: { min: 75 } }, text: 'A Chaga já lambia as pedras quando tudo acabou. Metade da cidade tossia sangue dourado.' },
+  { cond: { lostDistricts: 3 }, text: 'Os distritos perdidos nos cercos nunca foram reconstruídos. Valdrem encolheu para dentro de si.' },
+  { cond: { siegesWon: 3 }, text: 'Três hordas quebraram contra a Muralha. Os nomes dos que lutaram foram gravados no Portão.' },
+  { cond: { deadCount: 4 }, text: 'A Casa enterrou {dead} dos seus. Os retratos cobrem uma parede inteira.' },
+  { cond: { deadCount: 1, deadMax: 0 }, text: 'Ninguém da Casa morreu no Ermo. Ninguém acredita.' },
+  { cond: { rep: { f: 'sutura', max: -50 } }, text: 'A Sutura amaldiçoou seu nome do púlpito. Ninguém da Casa será costurado.' },
+  { cond: { rep: { f: 'coroa', max: -50 } }, text: 'A Coroa pregou seu retrato na forca vazia. Recompensa ainda paga.' },
+  { cond: { rep: { f: 'guilda', min: 60 } }, text: 'A Guilda batizou um navio com o nome da Casa.' },
+  { cond: { rep: { f: 'bebedores', min: 60 } }, text: 'No Antro, ainda bebem em seu nome.' },
+  { cond: { fragEaten: 1 }, text: 'Os pedaços do deus que você comeu nunca saíram. Seus herdeiros nascem com os olhos dourados.' },
+  { cond: { flag: 'poupou_rendidos' }, text: 'Os homens que você poupou no Ermo contaram a história. Às vezes, bem.' },
+  { cond: { flag: 'traiu_guilda' }, text: 'A Guilda não esquece quem mente na balança.' },
+  { cond: { flag: 'sutura_cura_gratis' }, text: 'A enfermaria da Sutura guardou uma cama com o nome da Casa.' },
 ];
+
+/** Marcos (diário). */
+export const MILESTONES = {
+  first_expedition: 'Primeira descida ao Ermo.',
+  first_ichor: 'Primeiro frasco de Icor vendido.',
+  first_level: 'Primeiro gole do deus.',
+  first_amputation: 'Primeira perda de membro.',
+  first_siege: 'Primeiro cerco.',
+  first_death: 'O primeiro da Casa morreu no Ermo.',
+  antro: 'Descobri o Antro dos Bebedores.',
+};

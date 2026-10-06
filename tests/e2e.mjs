@@ -1,271 +1,432 @@
-// Teste ponta a ponta no WebKit (perfil iPhone 13), servindo a build de produção (dist/)
-// numa SUBPASTA (/vazante/), como no GitHub Pages. Verifica: manifest, service worker, offline,
-// fluxo completo (intro → tutorial → vila → expedição com combates, eventos, loja, chefe),
-// persistência ao recarregar e ausência de erros de página.
-// Uso: node tests/e2e.mjs [maxPassos]
-import { webkit, devices } from 'playwright';
-import { spawn, execFileSync } from 'node:child_process';
-import { readFileSync, mkdirSync } from 'node:fs';
+// Teste ponta a ponta no WebKit com perfil de iPhone (Playwright), servindo o jogo numa SUBPASTA (/icor/)
+// como no GitHub Pages. Cada verificação reporta PASS / FAIL / SKIP com motivo (tolerante: telas de
+// outras áreas que ainda não existem viram SKIP, não quebram o resto).
+//
+// Uso:
+//   node tests/e2e.mjs                 # build + serve dist/ em /icor/
+//   node tests/e2e.mjs --dev           # serve game/ direto (sem build; SW em modo dev)
+//   node tests/e2e.mjs --headed        # abre a janela do navegador
+//   node tests/e2e.mjs --no-update     # pula o teste de atualização do service worker
+//   SHOT_DIR=pasta node tests/e2e.mjs  # onde salvar screenshots (padrão tests/shots)
+// Sai com código 1 se houver FAIL.
+import { mkdirSync, mkdtempSync, cpSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const MAX = Number(process.argv[2] || 400);
-const SHOTS = process.env.SHOT_DIR || 'tests/shots';
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+const DEV = args.includes('--dev');
+const HEADED = args.includes('--headed');
+const NO_UPDATE = args.includes('--no-update');
+const SHOTS = process.env.SHOT_DIR || join(ROOT, 'tests', 'shots');
+const PREFIX = '/icor/';
 mkdirSync(SHOTS, { recursive: true });
-execFileSync(process.execPath, ['tools/build.mjs'], { stdio: 'inherit' });
-const port = 8123;
-const srv = spawn(process.execPath, ['tools/serve.mjs', 'dist', String(port), '/vazante/'], { stdio: 'ignore' });
-await new Promise((r) => setTimeout(r, 700));
-const BASE = `http://localhost:${port}/vazante/`;
 
+// ---------------- relatório ----------------
 const results = [];
-const ok = (name, cond, extra = '') => { results.push({ name, ok: !!cond, extra }); console.log(`${cond ? '✔' : '✘'} ${name}${extra ? ' — ' + extra : ''}`); };
+const SKIP = (why) => ({ __skip: true, why });
+const ICON = { PASS: '✔', FAIL: '✘', SKIP: '○' };
+function report(name, status, info = '') {
+  results.push({ name, status, info });
+  console.log(`${ICON[status]} ${status.padEnd(4)} ${name}${info ? ' — ' + info : ''}`);
+}
+async function check(name, fn) {
+  try {
+    const r = await fn();
+    if (r && r.__skip) report(name, 'SKIP', r.why);
+    else if (r === false) report(name, 'FAIL');
+    else report(name, 'PASS', typeof r === 'string' ? r : '');
+    return r;
+  } catch (e) {
+    report(name, 'FAIL', String(e?.message || e).split('\n')[0].slice(0, 300));
+    return false;
+  }
+}
+const assert = (cond, msg) => { if (!cond) throw new Error(msg || 'condição falsa'); };
 
-const browser = await webkit.launch();
-const ctx = await browser.newContext({ ...devices['iPhone 13'] });
-const page = await ctx.newPage();
+// ---------------- servidor ----------------
+let playwright;
+try { playwright = await import('playwright'); } catch (e) {
+  console.error('Playwright não encontrado. Rode: npm install && npx playwright install webkit');
+  process.exit(1);
+}
+const { webkit, devices } = playwright;
+const { startServer } = await import('../tools/serve.mjs');
+
+let siteDir = join(ROOT, 'game');
+let tmpSite = null;
+if (!DEV) {
+  const { build } = await import('../tools/build.mjs');
+  // build numa pasta temporária (permite simular uma versão nova sem tocar em dist/)
+  tmpSite = mkdtempSync(join(tmpdir(), 'icor-e2e-'));
+  const r = build({ out: tmpSite, quiet: true });
+  siteDir = tmpSite;
+  console.log(`build ${r.version} (${r.count} arquivos) em ${tmpSite}`);
+}
+let srv = await startServer({ root: siteDir, port: 0, prefix: PREFIX, quiet: true });
+const BASE = `http://localhost:${srv.port}${PREFIX}`;
+console.log(`servindo ${DEV ? 'game/' : 'build'} em ${BASE}\n`);
+
+const deviceName = devices['iPhone 13'] ? 'iPhone 13' : Object.keys(devices).find((d) => /iPhone 1[3-5]/.test(d));
+const browser = await webkit.launch({ headless: !HEADED });
+const context = await browser.newContext({ ...devices[deviceName], serviceWorkers: 'allow' });
+const page = await context.newPage();
 const errors = [];
-page.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
-page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+const missing = [];
+page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+page.on('console', (m) => {
+  if (m.type() !== 'error') return;
+  const t = m.text();
+  if (/Failed to load resource/i.test(t)) return; // tratado em 'response'
+  errors.push(`console: ${t}`);
+});
+page.on('response', (r) => { if (r.status() >= 400 && r.url().startsWith(BASE)) missing.push(`${r.status()} ${r.url().slice(BASE.length)}`); });
 
-await page.goto(BASE);
-await page.waitForSelector('.title-screen', { timeout: 8000 });
-ok('Título carrega na subpasta', true);
-const manifest = await page.evaluate(async () => { const l = document.querySelector('link[rel=manifest]'); const r = await fetch(l.href); return r.ok ? r.json() : null; });
-ok('Manifest acessível e standalone', manifest && manifest.display === 'standalone' && manifest.start_url === './', manifest && manifest.short_name);
-const icons = await page.evaluate(async () => Promise.all(['icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'].map(async (p) => (await fetch(p)).ok)));
-ok('Ícones acessíveis', icons.every(Boolean));
-const meta = await page.evaluate(() => ({
-  vp: document.querySelector('meta[name=viewport]').content,
-  apple: !!document.querySelector('meta[name=apple-mobile-web-app-capable]'),
-  touch: !!document.querySelector('link[rel=apple-touch-icon]'),
-}));
-ok('Viewport com viewport-fit=cover e metas iOS', meta.vp.includes('viewport-fit=cover') && meta.apple && meta.touch);
-const sw = await page.evaluate(async () => { const reg = await navigator.serviceWorker.ready; return { scope: reg.scope, active: !!reg.active }; });
-ok('Service worker ativo no escopo da subpasta', sw.active && sw.scope.endsWith('/vazante/'), sw.scope);
+// ---------------- helpers ----------------
+const screenId = () => page.evaluate(() => document.querySelector('#app')?.dataset.screen || null);
+async function waitScreen(id, timeout = 6000) {
+  const ids = [].concat(id);
+  await page.waitForFunction((ids) => ids.includes(document.querySelector('#app')?.dataset.screen), ids, { timeout });
+  return screenId();
+}
+const hasScreen = (id) => page.evaluate((id) => !!window.__ICOR__?.hasScreen(id), id);
+const G = () => page.evaluate(() => { const g = window.__ICOR__?.getG(); return g ? JSON.parse(JSON.stringify(g)) : null; });
+async function shot(name) { try { await page.screenshot({ path: join(SHOTS, `${name}.png`) }); } catch { /* ignore */ } }
 
-// injeta o bot (apenas no teste)
-const botSrc = readFileSync('tests/bot.mjs', 'utf8').replaceAll('../game/js/', './js/') + '\nwindow.__bot = { botTurn, playCombat };';
-await page.addScriptTag({ type: 'module', content: botSrc });
-await page.waitForFunction(() => !!window.__bot, null, { timeout: 5000 });
-
-// ---------- novo jogo ----------
-await page.getByText('Novo jogo').click();
-await page.getByText('Pular').click();
-await page.locator('input.name').fill('Teste');
-await page.getByText('Descer à praia').click();
-await page.waitForSelector('canvas.board');
-ok('Tutorial: combate abre', true);
-await page.screenshot({ path: `${SHOTS}/e2e-tutorial.png` });
-
-async function dismissHints() {
-  for (let i = 0; i < 5; i++) {
-    const b = page.locator('.hint button');
-    if (await b.count()) await b.first().click().catch(() => {}); else break;
-    await page.waitForTimeout(120);
+/** Toca no botão cujo rótulo contém o texto (prioriza dock e camadas abertas). */
+async function tap(text, { within = null, exact = false, timeout = 3000 } = {}) {
+  const scope = within ? page.locator(within) : page;
+  const loc = scope.locator('button', exact ? { hasText: new RegExp(`^\\s*${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) } : { hasText: text });
+  const layer = page.locator('.layer button', { hasText: text });
+  const target = (await layer.count()) ? layer.first() : loc.first();
+  await target.waitFor({ state: 'visible', timeout });
+  await target.click();
+  await page.waitForTimeout(220); // guarda de toque duplo (180ms) do dom.js
+}
+/** Fecha dicas/folhas abertas. */
+async function dismissLayers(max = 6) {
+  for (let i = 0; i < max; i++) {
+    const n = await page.locator('.layer .modal-back').count();
+    if (!n) return;
+    const ok = page.locator('.layer .modal-back').last().locator('button', { hasText: /Entendi|Continuar|OK|Fechar/ });
+    if (await ok.count()) await ok.first().click().catch(() => {});
+    else await page.locator('.layer .modal-back').last().locator('button[aria-label="Fechar"]').first().click().catch(() => {});
+    await page.waitForTimeout(250);
   }
 }
-
-async function botCombat(maxTurns = 50) {
-  let turns = 0;
-  for (let t = 0; t < 600 && turns < maxTurns; t++) {
-    await dismissHints();
-    const st = await page.evaluate(() => { const a = window.__vazante; const c = a.run && a.run.combat; return c ? c.phase : 'none'; });
-    if (st !== 'player') return st;
-    const busy = await page.evaluate(() => window.__vazante.combatUI && window.__vazante.combatUI.busy);
-    if (busy) { await page.waitForTimeout(200); continue; }
-    turns++;
-    await page.evaluate(() => {
-      const a = window.__vazante; const c = a.run.combat;
-      window.__bot.botTurn(c);
-      c.ev = [];
-      a.combatUI.board.sync();
-      a.combatUI.afterAction();
-    });
-    await page.waitForTimeout(60);
-  }
-  return 'timeout';
-}
-
-// tutorial: um turno pela interface (toque real) e o resto com o bot
-await dismissHints();
-const box = await page.locator('canvas.board').boundingBox();
-const T = box.width / 7;
-await page.mouse.click(box.x + T * 3.5, box.y + T * 4.5);
-await page.waitForTimeout(700);
-const moved = await page.evaluate(() => window.__vazante.run.combat.turn.moved);
-ok('Toque no tabuleiro move a personagem', moved);
-await page.locator('.act', { hasText: 'Desfazer' }).click();
-await page.waitForTimeout(300);
-const undone = await page.evaluate(() => !window.__vazante.run.combat.turn.moved);
-ok('Desfazer movimento funciona', undone);
-await page.locator('.act', { hasText: 'Fim do turno' }).click();
-await page.waitForTimeout(200);
-const armed = await page.locator('.act.end.arm').count();
-ok('Fim de turno pede confirmação quando há ações sobrando', armed === 1);
-await page.locator('.act.end').click();
-await page.waitForTimeout(2500);
-const round2 = await page.evaluate(() => window.__vazante.run && window.__vazante.run.combat && window.__vazante.run.combat.round);
-ok('Turno inimigo resolvido, rodada 2', round2 === 2, 'rodada ' + round2);
-const tut = await botCombat();
-await page.waitForTimeout(1200);
-await page.waitForSelector('text=Subir para Salgema', { timeout: 8000 }).catch(() => {});
-ok('Tutorial termina e leva à vila', await page.getByText('Subir para Salgema').count() > 0, tut);
-await page.getByText('Subir para Salgema').click();
-await page.waitForSelector('text=Descer à cidade');
-await page.screenshot({ path: `${SHOTS}/e2e-hub.png` });
-
-// visita locais da vila
-for (const loc of ['Casa da Avó Zélia', 'Forja da Ilda', 'Taverna O Anzol', 'Arquivo do Frei Anselmo']) {
-  await page.getByText(loc).first().click();
-  await page.waitForTimeout(250);
-  await page.locator('button[aria-label=Voltar]').click();
-  await page.waitForTimeout(200);
-}
-ok('Locais da vila abrem e voltam', await page.getByText('Descer à cidade').count() > 0);
-
-// ---------- expedição ----------
-async function runLoop(label, maxSteps) {
-  const seen = {};
-  for (let step = 0; step < maxSteps; step++) {
-    await dismissHints();
-    const s = await page.evaluate(() => { const a = window.__vazante; return { view: a.view, screen: a.run ? a.run.screen : null, combat: !!(a.run && a.run.combat), district: a.run ? a.run.district : 0 }; });
-    const key = s.view === 'run' ? s.screen : s.view;
-    seen[key] = (seen[key] || 0) + 1;
-    if (s.view === 'hub') return { seen, end: 'hub' };
-    try {
-      if (s.view === 'summary') { await page.getByText('Voltar a Salgema').click(); continue; }
-      if (s.view !== 'run') { await page.waitForTimeout(200); continue; }
-      switch (s.screen) {
-        case 'combat': {
-          const r = await botCombat(60);
-          if (r === 'timeout') { await page.screenshot({ path: `${SHOTS}/e2e-timeout-${label}.png` }); return { seen, end: 'combat-timeout' }; }
-          await page.waitForTimeout(900);
-          break;
-        }
-        case 'map':
-          await page.locator('.map-node.sel').first().click();
-          await page.getByRole('button', { name: 'Ir' }).click();
-          break;
-        case 'reward': {
-          const cards = page.locator('.scroll .card.tap');
-          if (await cards.count()) { await cards.first().click(); await page.getByRole('button', { name: 'Pegar' }).click(); }
-          else await page.getByRole('button', { name: 'Continuar' }).click();
-          break;
-        }
-        case 'levelup':
-          await page.locator('.scroll .card.tap').first().click();
-          await page.getByRole('button', { name: 'Confirmar' }).click();
-          break;
-        case 'event': {
-          const c = page.locator('.btn.choice:not([disabled])');
-          if (await c.count()) await c.first().click();
-          else { const b = page.locator('.bottombar .btn'); await b.first().click(); }
-          await page.waitForTimeout(150);
-          const cont = page.locator('.bottombar .btn');
-          if (await cont.count()) await cont.first().click();
-          break;
-        }
-        case 'shop': {
-          const buyBtn = page.locator('.card .btn.small.primary');
-          if (await buyBtn.count()) await buyBtn.first().click();
-          await page.waitForTimeout(100);
-          await page.getByText('Seguir viagem').click();
-          break;
-        }
-        case 'rest': {
-          const opts = page.locator('.scroll .card.tap:not(.locked)');
-          await opts.first().click();
-          await page.waitForTimeout(150);
-          const sheetCard = page.locator('.sheet .card.tap');
-          if (await sheetCard.count()) await sheetCard.first().click();
-          break;
-        }
-        case 'bossintro': await page.getByText('Enfrentar').click(); break;
-        case 'extract': await page.getByRole('button', { name: label === 'deep' ? '⬇ Descer' : '⬆ Subir' }).click(); break;
-        case 'dead': await page.getByText('Acordar na praia').click(); break;
-        case 'ending': {
-          for (let i = 0; i < 8; i++) { if (await page.getByText('Voltar a Salgema').count()) break; await page.mouse.click(200, 400); await page.waitForTimeout(150); }
-          await page.getByText('Voltar a Salgema').click();
-          break;
-        }
-        default: await page.waitForTimeout(200);
-      }
-    } catch (e) {
-      console.log('passo falhou', key, e.message.split('\n')[0]);
-      await page.screenshot({ path: `${SHOTS}/e2e-fail-${label}-${step}.png` });
+/** Avança por telas desconhecidas tocando o botão principal do dock até chegar no alvo. */
+async function advanceTo(targets, maxSteps = 25) {
+  targets = [].concat(targets);
+  const path = [];
+  for (let i = 0; i < maxSteps; i++) {
+    await dismissLayers();
+    const cur = await screenId();
+    if (path[path.length - 1] !== cur) path.push(cur);
+    if (targets.includes(cur)) return { ok: true, path };
+    // preenche campos de texto vazios (nome do herói etc.)
+    for (const inp of await page.locator('main input[type=text], main input:not([type]), footer input').all()) {
+      if (!(await inp.inputValue().catch(() => 'x'))) await inp.fill('Teste').catch(() => {});
     }
-    await page.waitForTimeout(120);
+    const cands = page.locator('footer.dock button.btn:not(.is-disabled)');
+    const n = await cands.count();
+    let clicked = false;
+    // prioridade: primário/sangue, evitando Voltar/Menu
+    for (const pref of ['.btn-primary', '.btn-blood', '']) {
+      for (let k = n - 1; k >= 0 && !clicked; k--) {
+        const b = cands.nth(k);
+        const cls = (await b.getAttribute('class')) || '';
+        const label = (await b.innerText()).trim();
+        if (/Voltar|Menu|Sair/i.test(label)) continue;
+        if (pref && !cls.includes(pref.slice(1))) continue;
+        await b.click().catch(() => {});
+        clicked = true;
+      }
+      if (clicked) break;
+    }
+    if (!clicked) {
+      // sem dock útil: tenta um botão principal na tela
+      const mb = page.locator('main button.btn-primary:not(.is-disabled), main button.btn-blood:not(.is-disabled)');
+      if (await mb.count()) { await mb.first().click().catch(() => {}); clicked = true; }
+    }
+    if (!clicked) return { ok: false, path, why: `sem botão para avançar em "${cur}"` };
+    await page.waitForTimeout(300);
   }
-  return { seen, end: 'max-steps' };
+  return { ok: false, path, why: 'passos esgotados' };
+}
+async function layoutIssues() {
+  return page.evaluate(() => {
+    const out = { hscroll: false, small: [] };
+    const de = document.documentElement;
+    const main = document.querySelector('main.screen');
+    out.hscroll = de.scrollWidth > window.innerWidth + 1 || (main && main.scrollWidth > main.clientWidth + 1);
+    for (const b of document.querySelectorAll('button')) {
+      const r = b.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const min = b.classList.contains('btn-small') || b.classList.contains('sh-help-btn') || b.classList.contains('tab') ? 36 : 44;
+      if (r.height < min - 0.5 || r.width < Math.min(min, 36) - 0.5) out.small.push(`${(b.innerText || b.getAttribute('aria-label') || '?').trim().slice(0, 24)} (${Math.round(r.width)}×${Math.round(r.height)})`);
+      if (r.right > window.innerWidth + 1) out.hscroll = true;
+    }
+    return out;
+  });
 }
 
-await page.getByText('Descer à cidade').click();
-await page.getByRole('button', { name: /Descer: Porto/ }).click();
-await page.waitForSelector('.map-node');
-ok('Expedição começa no mapa', true);
-await page.screenshot({ path: `${SHOTS}/e2e-map.png` });
+// =====================================================================
+// 1. carga, metadados, PWA
+// =====================================================================
+await check('Título carrega na subpasta /icor/', async () => {
+  await page.goto(BASE, { waitUntil: 'load' });
+  await waitScreen('title', 10000);
+  await shot('01-titulo');
+  return `dispositivo ${deviceName}`;
+});
+await check('Logotipo e menu do título', async () => {
+  const txt = await page.locator('main').innerText();
+  assert(/ICOR/.test(txt), 'logotipo ausente');
+  assert(await page.locator('footer.dock button', { hasText: 'Nova campanha' }).count(), 'botão Nova campanha ausente');
+  for (const l of ['Como jogar', 'Configurações', 'Backup']) assert(await page.locator('main button', { hasText: l }).count(), `botão ${l} ausente`);
+});
+let onlineFailed = [];
+await check('Módulos de todas as áreas carregaram', async () => {
+  const rep = await page.evaluate(() => window.__ICOR_BOOT__ || null);
+  if (!rep) return SKIP('main.js sem relatório de boot');
+  onlineFailed = rep.failed.map((f) => f.name);
+  if (rep.failed.length) throw new Error(`falharam: ${rep.failed.map((f) => `${f.name} (${f.error.slice(0, 80)})`).join('; ')}`);
+  return rep.loaded.join(', ');
+});
+await check('Metas iOS (viewport-fit, apple-touch-icon, standalone)', async () => {
+  const m = await page.evaluate(() => ({
+    vp: document.querySelector('meta[name=viewport]')?.content || '',
+    apple: !!document.querySelector('meta[name=apple-mobile-web-app-capable]'),
+    touch: document.querySelector('link[rel=apple-touch-icon]')?.getAttribute('href'),
+  }));
+  assert(m.vp.includes('viewport-fit=cover'), 'viewport sem viewport-fit=cover');
+  assert(m.apple, 'falta apple-mobile-web-app-capable');
+  const r = await page.request.get(new URL(m.touch, BASE).toString());
+  assert(r.ok(), 'apple-touch-icon inacessível');
+});
+await check('Manifest válido e ícones acessíveis', async () => {
+  const href = await page.evaluate(() => document.querySelector('link[rel=manifest]').href);
+  const r = await page.request.get(href);
+  assert(r.ok(), 'manifest 404');
+  const m = await r.json();
+  assert(m.display === 'standalone' && m.start_url === './' && m.scope === './', 'display/start_url/scope');
+  for (const i of m.icons) assert((await page.request.get(new URL(i.src, href).toString())).ok(), `ícone ${i.src}`);
+  return `${m.short_name}, ${m.icons.length} ícones`;
+});
+let swOk = false;
+await check('Service worker ativo no escopo /icor/', async () => {
+  const sw = await page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return { unsupported: true };
+    const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(() => r(null), 8000))]);
+    return reg ? { scope: reg.scope, active: !!reg.active } : { timeout: true };
+  });
+  if (sw.unsupported) return SKIP('WebKit desta plataforma sem service worker');
+  if (sw.timeout) return SKIP('service worker não ficou pronto em 8s (WebKit/Windows pode não suportar)');
+  assert(sw.active && sw.scope.endsWith(PREFIX), `escopo ${sw.scope}`);
+  swOk = true;
+  return sw.scope;
+});
+await check('Sem rolagem horizontal e botões ≥ 44px no título', async () => {
+  const L = await layoutIssues();
+  assert(!L.hscroll, 'há rolagem horizontal');
+  assert(!L.small.length, `botões pequenos: ${L.small.join(', ')}`);
+});
 
-// persistência: recarrega no meio da expedição
-await page.locator('.map-node.sel').first().click();
-await page.getByRole('button', { name: 'Ir' }).click();
-await page.waitForTimeout(800);
-const before = await page.evaluate(() => JSON.stringify({ s: window.__vazante.run.screen, hp: window.__vazante.run.hero.hp, cur: window.__vazante.run.cur }));
-await page.reload();
-await page.waitForSelector('.title-screen');
-await page.getByText('Continuar expedição').click();
-await page.waitForTimeout(600);
-const after = await page.evaluate(() => JSON.stringify({ s: window.__vazante.run.screen, hp: window.__vazante.run.hero.hp, cur: window.__vazante.run.cur }));
-ok('Save preserva a expedição ao recarregar', before === after, after);
-await page.addScriptTag({ type: 'module', content: botSrc });
-await page.waitForFunction(() => !!window.__bot);
-
-const r1 = await runLoop('deep', MAX);
-ok('Expedição percorrida até voltar à vila', r1.end === 'hub', r1.end + ' ' + JSON.stringify(r1.seen));
-const metaAfter = await page.evaluate(() => { const m = window.__vazante.meta; return { runs: m.runs, conchas: m.conchas, bosses: m.bosses, best: m.bestiary, kills: m.totalKills }; });
-ok('Progressão persistente registrada (Conchas/bestiário)', metaAfter.runs >= 1 && metaAfter.kills > 0, `runs=${metaAfter.runs} conchas=${metaAfter.conchas} chefes=${metaAfter.bosses.join(',')} abates=${metaAfter.kills}`);
-
-// segunda expedição: compra melhoria e recomeça (ciclo completo + início de outro)
-await page.evaluate(() => { const a = window.__vazante; a.meta.conchas += 100; a.save(); a.render(); });
-await page.getByText('Farol de Salgema').click();
-const buyRelight = page.getByRole('button', { name: 'Comprar' });
-if (await buyRelight.count()) await buyRelight.first().click();
-await page.locator('button[aria-label=Voltar]').click();
-const farol = await page.evaluate(() => !!window.__vazante.meta.upgrades.light_relight);
-ok('Melhoria permanente comprada (Farol → Faroleiro)', farol);
-await page.getByText('Descer à cidade').click();
-await page.getByText('Faroleiro').first().click();
-await page.getByRole('button', { name: /Descer: Porto/ }).click();
-await page.waitForSelector('.map-node');
-const cls = await page.evaluate(() => window.__vazante.run.hero.cls);
-ok('Nova expedição com classe desbloqueada', cls === 'faroleiro', cls);
-const r2 = await runLoop('up', 120);
-ok('Segunda expedição jogável', ['hub', 'max-steps'].includes(r2.end), JSON.stringify(r2.seen));
-
-// offline: recarrega sem rede
-// offline: derruba o servidor e recarrega — tudo deve vir do cache do service worker
-const cached = await page.evaluate(async () => { const ks = await caches.keys(); const c = await caches.open(ks.find((k) => k.startsWith('vazante-'))); return (await c.keys()).length; });
-srv.kill();
-await new Promise((r) => setTimeout(r, 500));
-let offOk = false;
-try {
-  await page.reload({ timeout: 10000 });
-  await page.waitForSelector('.title-screen', { timeout: 8000 });
-  offOk = true;
-} catch (e) { console.log('offline:', e.message.split(String.fromCharCode(10))[0]); }
-ok('Funciona offline (servidor desligado) após o cache', offOk, `${cached} arquivos em cache`);
-if (offOk) {
-  await page.getByText('Continuar em Salgema').click();
-  await page.waitForSelector('text=Descer à cidade', { timeout: 5000 }).catch(() => {});
-  ok('Progresso continua acessível offline', await page.getByText('Descer à cidade').count() > 0);
+// =====================================================================
+// 2. telas do shell
+// =====================================================================
+for (const [label, id, shotName] of [['Como jogar', 'help', '02-ajuda'], ['Configurações', 'settings', '03-config'], ['Backup', 'backup', '05-backup']]) {
+  await check(`Tela ${id} abre e volta`, async () => {
+    await tap(label, { within: 'main' });
+    await waitScreen(id);
+    await shot(shotName);
+    const L = await layoutIssues();
+    assert(!L.hscroll, 'rolagem horizontal');
+    assert(!L.small.length, `botões pequenos: ${L.small.join(', ')}`);
+    if (id === 'help') {
+      await tap('Fôlego');
+      await page.waitForFunction(() => /Fôlego/.test(document.querySelector('main')?.innerText || ''));
+      await shot('02b-ajuda-topico');
+      await tap('Tópicos');
+    }
+    await tap('Voltar', { within: 'footer' });
+    await waitScreen('title');
+  });
 }
+await check('Tela install abre (detecta modo navegador)', async () => {
+  await tap('Instalar', { within: 'main' }).catch(() => tap('Modo app', { within: 'main' }));
+  await waitScreen('install');
+  const txt = await page.locator('main').innerText();
+  assert(/Compartilhar/.test(txt) || /modo app/i.test(txt), 'instruções ausentes');
+  await shot('04-instalar');
+  await tap('Voltar', { within: 'footer' });
+  await waitScreen('title');
+});
+await check('Configurações persistem (volume)', async () => {
+  await tap('Configurações', { within: 'main' });
+  await waitScreen('settings');
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem('icor.settings') || '{}').volume ?? 0.7);
+  await page.locator('button[aria-label="Diminuir volume"]').click();
+  await page.waitForTimeout(250);
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem('icor.settings') || '{}').volume);
+  assert(Math.abs(after - (before - 0.1)) < 0.01, `volume ${before} -> ${after}`);
+  await page.locator('button[aria-label="Aumentar volume"]').click();
+  await tap('Voltar', { within: 'footer' });
+  await waitScreen('title');
+});
 
-// layout: sem rolagem horizontal
-const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-ok('Sem rolagem horizontal', !overflow);
+// =====================================================================
+// 3. fluxo de campanha
+// =====================================================================
+let heroName = null;
+await check('Nova campanha → intro/criação', async () => {
+  await tap('Nova campanha', { within: 'footer' });
+  await page.waitForTimeout(300);
+  if (await page.locator('.layer button', { hasText: 'Apagar e começar' }).count()) await tap('Apagar e começar');
+  const g = await G();
+  assert(g && g.v && g.city, 'G não foi criado');
+  const cur = await screenId();
+  if (cur === 'title') return SKIP('telas intro/create ainda não existem (área D/A)');
+  await shot('06-intro');
+  return `foi para "${cur}"`;
+});
+await check('Intro → criação de personagem', async () => {
+  if (!(await hasScreen('create'))) return SKIP('tela create (área A) inexistente');
+  const r = await advanceTo('create', 12);
+  if (!r.ok) throw new Error(`${r.why}; caminho ${r.path.join(' → ')}`);
+  await shot('07-criacao');
+  const L = await layoutIssues();
+  assert(!L.hscroll, 'rolagem horizontal na criação');
+  return r.path.join(' → ');
+});
+await check('Criação → cidade', async () => {
+  if (!(await hasScreen('create')) || !(await hasScreen('city'))) return SKIP('telas create/city ainda não existem');
+  if ((await screenId()) !== 'create') return SKIP('não chegou na criação');
+  const r = await advanceTo('city', 30);
+  if (!r.ok) throw new Error(`${r.why}; caminho ${r.path.join(' → ')}`);
+  const g = await G();
+  assert(g.hero, 'herói não criado');
+  heroName = g.hero.name;
+  await shot('08-cidade');
+  const L = await layoutIssues();
+  assert(!L.hscroll, 'rolagem horizontal na cidade');
+  return `${heroName} em Valdrem; ${L.small.length ? 'botões pequenos: ' + L.small.slice(0, 5).join(', ') : 'botões OK'}`;
+});
+await check('Menu de pausa abre e "Salvar e sair" volta ao título', async () => {
+  const g = await G();
+  if (!g) return SKIP('sem campanha');
+  if ((await screenId()) === 'title') return SKIP('jogo ainda não sai do título');
+  const hudBtn = page.locator('header.hud button', { hasText: /Menu|☰/ });
+  if (await hudBtn.count()) await hudBtn.first().click();
+  else await page.evaluate(() => window.__ICOR__.openPauseMenu());
+  await page.locator('.sh-pause').waitFor({ timeout: 3000 });
+  await shot('09-pausa');
+  await tap('Salvar e sair');
+  await waitScreen('title');
+  return (await hudBtn.count()) ? 'via botão do HUD' : 'via API (HUD sem botão Menu)';
+});
+await check('Recarregar preserva o progresso (Continuar)', async () => {
+  const before = await G();
+  if (!before) return SKIP('sem campanha');
+  await page.reload({ waitUntil: 'load' });
+  await waitScreen('title', 10000);
+  const btn = page.locator('footer.dock button', { hasText: /Continuar|Ver o fim/ });
+  assert(await btn.count(), 'botão Continuar ausente após recarregar');
+  const after = await G();
+  assert(after && after.seed === before.seed && after.time === before.time, 'estado diferente após recarregar');
+  if (before.hero) assert(after.hero?.name === before.hero.name, 'herói diferente');
+  const expected = await page.evaluate(() => window.__ICOR__.resumeTarget());
+  if (expected === 'title') return SKIP('progresso salvo OK, mas nenhuma tela de jogo existe para retomar');
+  await btn.first().click();
+  await page.waitForTimeout(400);
+  const cur = await screenId();
+  assert(cur === expected, `continuou em ${cur}, esperado ${expected}`);
+  return `retomou em "${cur}"`;
+});
+await check('Backup exporta texto ICOR1:', async () => {
+  if (!(await G())) return SKIP('sem campanha');
+  await page.evaluate(() => { window.__ICOR__.go('backup'); });
+  await waitScreen('backup');
+  const v = await page.locator('textarea.sh-code').first().inputValue();
+  assert(v.startsWith('ICOR1:') && v.length > 100, 'texto de backup inválido');
+  await page.evaluate(() => window.__ICOR__.go('title', {}, { replace: true }));
+  await waitScreen('title');
+  return `${(v.length / 1024).toFixed(1)} KB`;
+});
 
-ok('Sem erros de página', errors.length === 0, errors.slice(0, 5).join(' | '));
-await page.screenshot({ path: `${SHOTS}/e2e-final.png` });
+// =====================================================================
+// 4. offline e atualização
+// =====================================================================
+await check('Funciona offline após o cache', async () => {
+  if (!swOk) return SKIP('service worker indisponível');
+  await page.reload({ waitUntil: 'load' }); // garante que a página está controlada
+  await waitScreen('title', 10000);
+  const controlled = await page.evaluate(() => !!navigator.serviceWorker.controller);
+  if (!controlled) return SKIP('página não ficou sob controle do service worker');
+  // Corte REAL de rede: derruba o servidor. (context.setOffline do WebKit bloqueia até respostas do
+  // service worker — limitação da emulação, não do iPhone.)
+  const port = srv.port;
+  await srv.close();
+  try {
+    await page.reload({ waitUntil: 'load' });
+    await waitScreen('title', 10000);
+    await shot('10-offline');
+    const rep = await page.evaluate(() => window.__ICOR_BOOT__);
+    const extra = (rep?.failed || []).map((f) => f.name).filter((n) => !onlineFailed.includes(n));
+    assert(!extra.length, `módulos que só falham offline: ${extra.join(', ')}`);
+    const g = await G();
+    return `título offline${g ? ', campanha carregada' : ''}`;
+  } finally {
+    srv = await startServer({ root: siteDir, port, prefix: PREFIX, quiet: true });
+  }
+});
+await check('Atualização segura: nova versão espera e aplica no título', async () => {
+  if (NO_UPDATE) return SKIP('--no-update');
+  if (DEV) return SKIP('modo --dev não tem versão de build');
+  if (!swOk) return SKIP('service worker indisponível');
+  const v1 = await page.evaluate(() => fetch('version.txt', { cache: 'no-store' }).then((r) => r.text()).then((t) => t.trim()));
+  // publica "versão 2": muda um arquivo e regenera o sw.js
+  const { genSW } = await import('../tools/gen-sw.mjs');
+  writeFileSync(join(siteDir, 'css', 'shell.css'), readFileSync(join(siteDir, 'css', 'shell.css'), 'utf8') + '\n/* e2e v2 */\n');
+  const v2 = genSW(siteDir).version;
+  writeFileSync(join(siteDir, 'version.txt'), v2 + '\n');
+  assert(v1 !== v2, 'versão não mudou');
+  const st = await page.evaluate(async () => { await window.__ICOR__.checkUpdate(); return window.__ICOR__.update(); });
+  assert(st.ready, `nova versão não ficou pronta: ${JSON.stringify(st)}`);
+  // ainda na versão antiga até o jogador aceitar
+  const ctrlV = await page.evaluate(() => new Promise((res) => { const c = new MessageChannel(); c.port1.onmessage = (e) => res(e.data.version); navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [c.port2]); setTimeout(() => res(null), 2000); }));
+  assert(ctrlV === v1, `controlador mudou sozinho (${ctrlV})`);
+  await page.waitForFunction(() => /Nova versão pronta/.test(document.querySelector('main')?.innerText || ''), null, { timeout: 4000 });
+  await shot('11-atualizacao');
+  const nav = page.waitForNavigation({ timeout: 10000 });
+  await tap('Atualizar agora');
+  await nav;
+  await waitScreen('title', 10000);
+  const ctrlV2 = await page.evaluate(() => new Promise((res) => { const c = new MessageChannel(); c.port1.onmessage = (e) => res(e.data.version); navigator.serviceWorker.controller?.postMessage({ type: 'GET_VERSION' }, [c.port2]); setTimeout(() => res(null), 2000); }));
+  assert(ctrlV2 === v2, `após atualizar: ${ctrlV2}, esperado ${v2}`);
+  const g = await G();
+  return `${v1} → ${v2}${g ? ', campanha preservada' : ''}`;
+});
+
+// =====================================================================
+// 5. erros
+// =====================================================================
+await check('Sem recursos 404', async () => {
+  const uniq = [...new Set(missing)];
+  if (uniq.length) throw new Error(uniq.slice(0, 8).join('; '));
+});
+await check('Sem erros de console/página', async () => {
+  const uniq = [...new Set(errors)];
+  if (uniq.length) throw new Error(`${uniq.length}: ${uniq.slice(0, 5).join(' | ')}`);
+});
+
 await browser.close();
-srv.kill();
-const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length}/${results.length} verificações OK`);
-process.exit(failed.length ? 1 : 0);
+await srv.close();
+if (tmpSite) rmSync(tmpSite, { recursive: true, force: true });
+
+const c = (s) => results.filter((r) => r.status === s).length;
+console.log(`\n──────── e2e: ${c('PASS')} PASS · ${c('FAIL')} FAIL · ${c('SKIP')} SKIP ────────`);
+console.log(`screenshots em ${SHOTS}`);
+writeFileSync(join(SHOTS, 'e2e-report.json'), JSON.stringify({ at: new Date().toISOString(), device: deviceName, base: BASE, results, errors, missing: [...new Set(missing)] }, null, 2));
+process.exit(c('FAIL') ? 1 : 0);

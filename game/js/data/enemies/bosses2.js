@@ -1,0 +1,128 @@
+// ICOR — Chefes das regiões 2 a 5 (Onda 2). Mesmo formato de bosses.js.
+const A = (corte = 0, perf = 0, impacto = 0, fogo = 0) => ({ corte, perf, impacto, fogo });
+
+export const BOSSES2 = {
+  rei_galhado: {
+    id: 'rei_galhado', name: 'O Rei Galhado', region: 'r2', tier: 2, boss: true,
+    hp: 170, eva: 5, acc: 10, speed: 95, morale: 0, dread: 14,
+    tags: ['chefe', 'fera', 'chaga'], weak: ['fogo'], resist: ['perf'],
+    parts: {
+      galhada: { name: 'Coroa de galhada', hp: 46, armor: A(2, 5, 3), role: 'special', hitMod: -10, severable: true, onBreak: 'galhada_rei',
+        desc: 'Enquanto inteira, ele se regenera. Machado lá em cima — ou fogo.' },
+      cabeca: { name: 'Cabeça de cervo', hp: 50, armor: A(2, 2, 3), role: 'head', vital: true },
+      bracoD: { name: 'Braço de raízes', hp: 50, armor: A(3, 3, 1), role: 'arm' },
+      bracoE: { name: 'Braço de cordas', hp: 50, armor: A(3, 3, 1), role: 'arm2', desc: 'Usado para enforcar.' },
+      tronco: { name: 'Corpo de casca e carne', hp: 170, armor: A(3, 4, 2), role: 'torso', vital: true },
+      pernas: { name: 'Cascos', hp: 60, armor: A(2, 2, 2), role: 'legs', desc: 'Quebre e a investida acaba.' },
+    },
+    intents: [
+      { id: 'investida', label: 'Investida real', icon: '⚡', kind: 'attack', dmg: [20, 28], dtype: 'perf', reach: 2, w: 5, cd: 2, windup: 60, uses: ['pernas'], when: ['notEngaged'], part: 'tronco', special: 'charge', status: [{ id: 'caido', chance: 60 }], aoe: 'hero_ally' },
+      { id: 'recuar', label: 'Recua para investir', icon: '↩', kind: 'move', move: 1, w: 2, cd: 3, when: ['engaged', 'canMove'] },
+      { id: 'varredura', label: 'Varredura de galhos', icon: '🌳', kind: 'attack', dmg: [13, 19], dtype: 'corte', reach: 1, w: 4, uses: ['bracoD'], part: 'random', aoe: 'hero_ally', status: [{ id: 'sangrando', chance: 40 }] },
+      { id: 'forca', label: 'A forca do rei', icon: '➰', kind: 'attack', dmg: [4, 7], dtype: 'impacto', reach: 1, w: 3, cd: 3, uses: ['bracoE'], part: 'cabeca', grab: true, special: 'pull', when: ['heroNotGrabbed'] },
+      { id: 'enforcar', label: 'Ergue você pelo pescoço', icon: '☠', kind: 'attack', dmg: [18, 26], dtype: 'impacto', reach: 0, w: 12, uses: ['bracoE'], when: ['grabbingHero'], part: 'cabeca', acc: 30, status: [{ id: 'atordoado', chance: 40 }], dread: 6 },
+      { id: 'matilha', label: 'Chama a matilha', icon: '🐺', kind: 'summon', w: 3, cd: 5, summon: 'lobo_tendao', max: 2, time: 80 },
+      { id: 'raizes', label: 'Raízes do trono', icon: '🌿', kind: 'attack', dmg: [6, 10], dtype: 'impacto', reach: 2, w: 2, cd: 4, part: 'pernas', aoe: 'hero_ally', status: [{ id: 'enredado', chance: 80, turns: 2 }] },
+      { id: 'regenerar', label: 'A floresta o alimenta', icon: '✚', kind: 'self', w: 3, cd: 2, uses: ['galhada'], when: ['hpBelow50'], special: 'regenerar' },
+      { id: 'pendurados', label: 'Os pendurados descem', icon: '⤓', kind: 'summon', w: 4, cd: 4, when: ['phase2'], summon: 'enforcado', max: 2, time: 80 },
+    ],
+    phases: [
+      { at: { hpBelow: 0.5, partsBroken: 2 }, id: 2, text: 'O Rei arranca a própria coroa de cordas e urra. Todas as árvores da floresta soltam seus mortos.', speed: 15, dread: 10, summon: 'enforcado' },
+    ],
+    ai: 'soldado', surrender: false, flee: false, startDist: 2, onDeath: 'chefe_morte',
+    loot: [['@weapon:3', 2], ['@armor:3', 2], ['@trinket:3', 2], ['chifre', 3, 2, 3], ['lasca_divina', 2], ['capacete_cervo', 1]], lootRolls: 3,
+    coin: [40, 80], ichor: [10, 16],
+    desc: 'Metade homem, metade cervo, coroado com uma galhada de onde pendem cordas. A floresta inteira se curva para ele.',
+  },
+
+  bispo_costurado: {
+    id: 'bispo_costurado', name: 'O Bispo Costurado', region: 'r3', tier: 3, boss: true,
+    hp: 190, eva: 0, acc: 12, speed: 90, morale: 0, dread: 16,
+    tags: ['chefe', 'morto', 'humano'], weak: ['fogo', 'corte'], resist: ['impacto'],
+    parts: {
+      fios: { name: 'Linha dourada das costas', hp: 40, armor: A(0, 6, 6), role: 'special', hitMod: -10, severable: true, onBreak: 'fios_bispo',
+        desc: 'Ele fala e costura pelos fios. Corte: os costurados caem e ele não recostura mais.' },
+      cabeca: { name: 'Cabeça de mitra', hp: 55, armor: A(2, 3, 2), role: 'head', vital: true },
+      bracoD: { name: 'Mão da agulha', hp: 55, armor: A(2, 2, 1), role: 'arm' },
+      bracoE: { name: 'Mão do báculo', hp: 55, armor: A(2, 2, 1), role: 'arm2' },
+      tronco: { name: 'Corpo de três bispos', hp: 190, armor: A(2, 4, 5), role: 'torso', vital: true },
+      pernas: { name: 'Pernas costuradas', hp: 60, armor: A(1, 3, 3), role: 'legs' },
+    },
+    intents: [
+      { id: 'agulha', label: 'Agulha de um metro', icon: '🪡', kind: 'attack', dmg: [16, 24], dtype: 'perf', reach: 1, w: 4, uses: ['bracoD'], part: 'random', status: [{ id: 'sangrando', chance: 50, stacks: 2 }] },
+      { id: 'baculo', label: 'Báculo de ossos', icon: '🦯', kind: 'attack', dmg: [14, 20], dtype: 'impacto', reach: 0, w: 3, uses: ['bracoE'], part: 'cabeca', status: [{ id: 'atordoado', chance: 30 }] },
+      { id: 'recosturar', label: 'Recostura um morto', icon: '🧵', kind: 'summon', w: 6, cd: 3, uses: ['fios'], when: ['corpse'], summon: 'costurado', max: 3, consumeCorpse: true, windup: 50 },
+      { id: 'costurar_voce', label: 'Costura sua boca', icon: '🤐', kind: 'attack', dmg: [6, 10], dtype: 'perf', reach: 2, w: 2, cd: 4, uses: ['fios'], part: 'cabeca', dread: 8, status: [{ id: 'enredado', chance: 60, turns: 2 }, { id: 'aterrorizado', chance: 40 }] },
+      { id: 'sermao', label: 'Sermão pela boca dos mortos', icon: '📜', kind: 'self', w: 2, cd: 4, dread: 10, special: 'pregacao' },
+      { id: 'sal', label: 'Chuva de sal bento', icon: '✶', kind: 'attack', dmg: [10, 14], dtype: 'fogo', reach: 2, w: 2, cd: 3, aoe: 'hero_ally', part: 'cabeca', status: [{ id: 'cego', chance: 40, turns: 1 }] },
+      { id: 'se_costurar', label: 'Costura as próprias feridas', icon: '✚', kind: 'self', w: 4, cd: 3, uses: ['fios'], when: ['phase2'], special: 'regenerar' },
+    ],
+    phases: [
+      { at: { hpBelow: 0.5, partsBroken: 2 }, id: 2, text: 'O Bispo abre o próprio peito e puxa mais linha de dentro. Os mortos da cripta respondem.', speed: 10, dread: 10, summon: 'costurado' },
+    ],
+    ai: 'soldado', surrender: false, flee: false, startDist: 1, onDeath: 'chefe_morte',
+    loot: [['cetro_bispo', 1], ['@weapon:4', 2], ['@armor:4', 2], ['@trinket:4', 2], ['lasca_divina', 2], ['agua_benta', 2]], lootRolls: 3,
+    coin: [50, 100], ichor: [12, 18],
+    desc: 'Três bispos costurados num só, com linha dourada que sai das costas e entra nos mortos. Ele quer costurar o deus. Começou por você.',
+  },
+
+  voz_submersa: {
+    id: 'voz_submersa', name: 'A Voz Submersa', region: 'r4', tier: 4, boss: true,
+    hp: 220, eva: 0, acc: 12, speed: 90, morale: 0, dread: 18,
+    tags: ['chefe', 'morto', 'chaga'], weak: ['corte', 'fogo'], resist: ['impacto', 'perf'],
+    parts: {
+      garganta: { name: 'Garganta luminosa', hp: 50, armor: A(1, 2, 2), role: 'special', hitMod: -10, weakpoint: 1.5, severable: true, onBreak: 'garganta',
+        desc: 'De onde vem o canto. Rasgue e ela fica muda — e fraca.' },
+      olhos: { name: 'Olhos de afogado', hp: 50, armor: A(1, 1, 1), role: 'head', vital: false, desc: 'Cegue-a.' },
+      tentaculoD: { name: 'Tentáculo que puxa', hp: 60, armor: A(1, 3, 3), role: 'arm' },
+      tentaculoE: { name: 'Tentáculo que afoga', hp: 60, armor: A(1, 3, 3), role: 'arm2' },
+      tronco: { name: 'Corpo de mil afogados', hp: 220, armor: A(2, 5, 6, 3), role: 'torso', vital: true },
+    },
+    intents: [
+      { id: 'cancao', label: 'A Canção', icon: '🎶', kind: 'self', w: 4, cd: 2, uses: ['garganta'], special: 'canto', dread: 14 },
+      { id: 'puxar', label: 'Puxa para a água', icon: '🐙', kind: 'attack', dmg: [10, 15], dtype: 'impacto', reach: 2, w: 4, uses: ['tentaculoD'], part: 'pernas', special: 'pull', status: [{ id: 'caido', chance: 35 }] },
+      { id: 'afogar', label: 'Enrola e afoga', icon: '🌊', kind: 'attack', dmg: [6, 10], dtype: 'impacto', reach: 0, w: 3, cd: 3, uses: ['tentaculoE'], part: 'tronco', grab: true, when: ['heroNotGrabbed'] },
+      { id: 'fundo', label: 'Leva você ao fundo', icon: '☠', kind: 'attack', dmg: [22, 30], dtype: 'impacto', reach: 0, w: 12, uses: ['tentaculoE'], when: ['grabbingHero'], part: 'cabeca', acc: 30, dread: 8 },
+      { id: 'mare_negra', label: 'Maré negra', icon: '🌊', kind: 'attack', dmg: [12, 18], dtype: 'impacto', reach: 2, w: 2, cd: 4, windup: 60, aoe: 'hero_ally', part: 'random', status: [{ id: 'caido', chance: 50 }] },
+      { id: 'afogados', label: 'Chama os afogados', icon: '⤓', kind: 'summon', w: 3, cd: 5, summon: 'afogado', max: 2, time: 80 },
+      { id: 'grito', label: 'Grito do fundo', icon: '📢', kind: 'attack', dmg: [14, 20], dtype: 'impacto', reach: 2, w: 3, uses: ['garganta'], part: 'cabeca', status: [{ id: 'atordoado', chance: 35 }] },
+    ],
+    phases: [
+      { at: { hpBelow: 0.5, partsBroken: 2 }, id: 2, text: 'A água inteira de Vel-Maren se ergue. A Voz canta mais alto do que um sino.', speed: 15, dread: 12, summon: 'sereia_carcaca' },
+    ],
+    ai: 'soldado', surrender: false, flee: false, startDist: 2, onDeath: 'chefe_morte',
+    loot: [['elmo_mergulho', 1], ['@weapon:5', 2], ['@armor:5', 2], ['@trinket:5', 2], ['lasca_divina', 3], ['ambar_icor', 2]], lootRolls: 3,
+    coin: [60, 120], ichor: [14, 20],
+    desc: 'Uma coisa do tamanho de uma catedral afundada, feita dos afogados de Vel-Maren. Canta. Quem ouve, entra na água.',
+  },
+
+  coracao: {
+    id: 'coracao', name: 'O Coração', region: 'r5', tier: 5, boss: true,
+    hp: 300, eva: 0, acc: 14, speed: 85, morale: 0, dread: 22,
+    tags: ['chefe', 'construto', 'chaga'], weak: ['corte', 'fogo'], resist: ['icor', 'impacto'],
+    parts: {
+      valvula1: { name: 'Válvula superior', hp: 50, armor: A(2, 2, 4), role: 'special', hitMod: -5, weakpoint: 1.4, severable: true, onBreak: 'valvula', desc: 'Cada válvula rompida enfraquece a batida.' },
+      valvula2: { name: 'Válvula inferior', hp: 50, armor: A(2, 2, 4), role: 'special', hitMod: -5, weakpoint: 1.4, severable: true, onBreak: 'valvula', desc: 'Cada válvula rompida enfraquece a batida.' },
+      aorta: { name: 'Aorta', hp: 70, armor: A(2, 3, 5), role: 'arm', desc: 'O jato de Icor sai daqui.' },
+      arterias: { name: 'Artérias', hp: 60, armor: A(1, 2, 4), role: 'arm2', desc: 'Prendem e bebem.' },
+      tronco: { name: 'Músculo do deus', hp: 300, armor: A(3, 5, 7, 2), role: 'torso', vital: true },
+    },
+    intents: [
+      { id: 'batida', label: 'A Batida', icon: '💓', kind: 'attack', dmg: [14, 20], dtype: 'impacto', reach: 2, w: 4, cd: 2, windup: 50, aoe: 'hero_ally', part: 'tronco', dread: 8, status: [{ id: 'atordoado', chance: 25 }] },
+      { id: 'jato', label: 'Jato de Icor', icon: '⚱', kind: 'attack', dmg: [18, 26], dtype: 'icor', reach: 2, w: 3, uses: ['aorta'], part: 'random', corruption: 4 },
+      { id: 'arterias', label: 'Artérias te envolvem', icon: '🩸', kind: 'attack', dmg: [6, 10], dtype: 'perf', reach: 1, w: 3, cd: 3, uses: ['arterias'], part: 'tronco', grab: true, special: 'pull', when: ['heroNotGrabbed'] },
+      { id: 'beber', label: 'Bebe o seu sangue', icon: '🫀', kind: 'attack', dmg: [20, 28], dtype: 'perf', reach: 0, w: 12, uses: ['arterias'], when: ['grabbingHero'], part: 'tronco', acc: 30, special: 'devorar', corruption: 3 },
+      { id: 'filhos', label: 'Bombeia filhos', icon: '👶', kind: 'summon', w: 3, cd: 5, summon: 'filho_icor', max: 2, time: 80 },
+      { id: 'esquecer', label: 'Você esquece um nome', icon: '❓', kind: 'self', w: 2, cd: 4, dread: 12, special: 'lamento' },
+      { id: 'tempestade', label: 'Tempestade de sangue', icon: '🌪', kind: 'attack', dmg: [16, 24], dtype: 'icor', reach: 2, w: 3, cd: 3, when: ['phase2'], aoe: 'hero_ally', part: 'random', corruption: 3, status: [{ id: 'sangrando', chance: 50, stacks: 2 }] },
+    ],
+    phases: [
+      { at: { hpBelow: 0.6, partsBroken: 2 }, id: 2, text: 'O Coração acelera. A carne em volta convulsiona. Do lado de fora, Valdrem sente o chão tremer.', speed: 20, dread: 14, summon: 'anticorpo' },
+      { at: { hpBelow: 0.25 }, id: 3, text: 'As batidas viram um tambor de guerra. Ele não quer morrer. Nunca quis.', speed: 15, dread: 10, summon: 'filho_icor' },
+    ],
+    ai: 'soldado', surrender: false, flee: false, startDist: 1, onDeath: 'chefe_morte',
+    loot: [['lasca_divina', 4, 2, 3], ['ambar_icor', 3, 2, 3], ['amuleto_unha_deus', 1], ['@weapon:5', 1], ['@armor:5', 1]], lootRolls: 3,
+    coin: [0, 0], ichor: [20, 30],
+    desc: 'Do tamanho de uma casa, ainda batendo depois de trinta anos de morte. Cada batida empurra a Chaga um pouco mais longe.',
+  },
+};

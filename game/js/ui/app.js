@@ -1,166 +1,178 @@
-// Aplicação: estado global, navegação entre telas, salvamento, dicas e ciclo de vida no iPhone.
-import { h, clear, toast, openSheet, closeAllSheets, sheetOpen } from './dom.js';
-import { saveGame, loadGame, loadSettings, saveSettings, saveError } from '../core/save.js';
-import { newMeta, migrateMeta } from '../run/meta.js';
-import { finishCombat } from '../run/run.js';
-import { CombatUI } from './combatui.js';
-import { unlockAudio, configureAudio, playAmbient, stopAmbient, suspendAudio, resumeAudio, sfx } from './audio.js';
-import * as S from './screens.js';
-import { isWater, isDeep, getHero, liveEnemies, hasTag } from '../combat/engine.js';
+// Shell da interface: roteador de telas, HUD, dock inferior, modais, folhas, toasts.
+//
+// Layout (index.html -> #app):
+//   <header.hud>   status do herói/tempo (renderizado por setHud(fn))
+//   <main.screen>  conteúdo rolável da tela atual
+//   <footer.dock>  ações principais ao alcance do polegar (preenchido pela tela via ctx.dock)
+//
+// Contrato de tela (ui/screens/*.js):
+//   export default {
+//     id: 'city',
+//     hud: true,                 // mostrar HUD? (padrão true)
+//     render(ctx) {...},         // ctx = { main, dock, params, refresh }
+//     onEnter(params) {...},     // opcional
+//     onExit() {...},            // opcional
+//   }
+// As telas redesenham do zero a cada render (simples e robusto). Use refresh() após mudar o estado.
+import { h, clear, button } from './dom.js';
+import { on, emit } from '../core/bus.js';
 
-export class App {
-  constructor() {
-    this.el = document.getElementById('app');
-    this.meta = null;
-    this.run = null;
-    this.settings = loadSettings();
-    this.view = 'title';
-    this.combatUI = null;
-    this.param = null;
-  }
+const screens = new Map();
+let cur = null;        // { def, params }
+let hudFn = null;
+let els = null;
+const stack = [];      // histórico simples para back()
 
-  boot() {
-    const d = loadGame();
-    if (d) {
-      this.meta = migrateMeta(d.meta);
-      this.run = d.run || null;
-      if (d.recovered) setTimeout(() => toast('Save principal danificado: recuperamos a cópia de segurança.', 4000), 600);
-      if (this.run && this.run.screen === 'combat' && !this.run.combat) this.run.screen = 'map';
-    }
-    configureAudio(this.settings);
-    const unlock = () => { unlockAudio(); this.ambient(); };
-    window.addEventListener('pointerdown', unlock, { passive: true });
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { this.save(); suspendAudio(); if (this.combatUI && this.combatUI.board) this.combatUI.board.stop(); }
-      else { resumeAudio(); if (this.combatUI && this.combatUI.board) { this.combatUI.layout(); this.combatUI.board.start(); } }
-    });
-    window.addEventListener('pagehide', () => this.save());
-    const onResize = () => {
-      clearTimeout(this.rz);
-      this.rz = setTimeout(() => {
-        if (this.combatUI && this.view === 'run' && this.run && this.run.screen === 'combat') { this.combatUI.layout(); this.combatUI.board.draw(); }
-      }, 120);
-    };
-    window.addEventListener('resize', onResize);
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    this.render();
-  }
+export function registerScreen(def) { screens.set(def.id, def); }
+export function hasScreen(id) { return screens.has(id); }
+export const currentScreen = () => cur?.def.id;
+export const currentParams = () => cur?.params;
 
-  save() {
-    if (!this.meta) return;
-    const ok = saveGame(this.meta, this.run);
-    if (!ok && !this.saveWarned) { this.saveWarned = true; toast(saveError() || 'Falha ao salvar.', 4000); }
-  }
-
-  updateSettings(patch) {
-    this.settings = { ...this.settings, ...patch };
-    saveSettings(this.settings);
-    configureAudio(this.settings);
-    if (this.combatUI && this.combatUI.board) this.combatUI.board.speed = this.settings.speed || 1;
-  }
-
-  go(view, param = null) {
-    document.querySelectorAll('.hint').forEach((b) => b.remove());
-    this.hintQueue = [];
-    this.view = view;
-    this.param = param;
-    closeAllSheets();
-    this.render();
-  }
-
-  render() {
-    const run = this.run;
-    const inCombat = this.view === 'run' && run && run.screen === 'combat' && run.combat;
-    if (this.combatUI && !inCombat) { this.combatUI.unmount(); this.combatUI = null; }
-    this.el.scrollTop = 0;
-    if (inCombat) {
-      if (!this.combatUI || this.combatUI.mountedC !== run.combat || !this.combatUI.root || !this.combatUI.root.isConnected) {
-        if (this.combatUI) this.combatUI.unmount();
-        this.combatUI = new CombatUI(this);
-        this.combatUI.mount(this.el);
-      } else this.combatUI.refresh();
-      this.ambient();
-      return;
-    }
-    clear(this.el);
-    let node;
-    if (this.view === 'run' && run) node = S.renderRun(this);
-    else node = (S.VIEWS[this.view] || S.VIEWS.title)(this, this.param);
-    this.el.appendChild(node);
-    this.ambient();
-  }
-
-  ambient() {
-    if (!this.settings.music) { stopAmbient(); return; }
-    if (this.view === 'run' && this.run) playAmbient(this.run.district);
-    else playAmbient(0);
-  }
-
-  // ---------- combate ----------
-  combatOver() {
-    const run = this.run;
-    const c = run.combat;
-    if (!c) return;
-    const won = c.phase === 'win';
-    sfx(won ? 'win' : 'lose');
-    if (run.tutorial) {
-      finishCombat(run, this.meta);
-      this.meta.tutorialDone = true;
-      this.run = null;
-      this.save();
-      this.go('tutorialEnd', { won });
-      return;
-    }
-    finishCombat(run, this.meta);
-    this.save();
-    this.render();
-  }
-
-  pauseMenu() { S.pauseMenu(this); }
-  openHelp(topic) { S.openManual(this, topic); }
-
-  // ---------- dicas ----------
-  hint(id, text) {
-    if (!this.settings.hints || !this.meta) return;
-    if (this.meta.hints[id]) return;
-    if (document.querySelector('.hint')) return;
-    this.meta.hints[id] = 1;
-    this.save();
-    const box = h('div', { class: 'hint', role: 'note' },
-      h('div', null, '💡 ', text),
-      h('div', { class: 'hb' }, h('button', { class: 'btn small', onTap: () => { box.remove(); this.nextHint(); } }, 'Entendi')));
-    document.body.appendChild(box);
-  }
-
-  nextHint() {
-    // reavalia o contexto atual em vez de mostrar dicas atrasadas
-    if (this.view === 'run' && this.run && this.run.combat && this.combatUI) setTimeout(() => this.contextHints(this.run.combat), 150);
-  }
-
-  contextHints(c) {
-    if (!c || !this.settings.hints) return;
-    const hero = getHero(c);
-    if (!hero) return;
-    const foes = liveEnemies(c);
-    if (foes.some((u) => u.intent)) this.hint('threat', 'Casas VERMELHAS serão atingidas quando você encerrar o turno. O número é o dano e o círculo sobre o inimigo, a ordem. Saia delas — ou empurre o inimigo para mudar o alvo!');
-    if (c.tutorial && c.turn.moved && !c.turn.acted) this.hint('t_attack', 'Agora ataque: toque numa habilidade (ex.: Arremessar Arpão) e depois num alvo amarelo. Empurrar inimigos contra paredes causa dano extra e ignora armadura.');
-    if (c.tutorial && c.turn.acted) this.hint('t_end', 'Quando terminar, toque em "Fim do turno". Os inimigos agem na ordem numerada e a maré pode subir.');
-    if (c.round >= 2 && c.tiles.some((t, i) => isWater(c, i % 7, Math.floor(i / 7)))) this.hint('water', 'A água subiu! Água custa 2 de movimento e deixa Molhado. Veja a Tábua de Marés no topo: ela mostra o nível das próximas rodadas (toque numa rodada para ver o alagamento).');
-    if (c.tiles.some((t, i) => isDeep(c, i % 7, Math.floor(i / 7)))) this.hint('deep', 'Água FUNDA (azul-escuro): drena seu Fôlego, afoga inimigos de terra e AFUNDA os pesados na hora. Empurre-os para lá!');
-    if (c.tiles.some((t) => t.fire > 0)) this.hint('fire', 'Fogo! Quem estiver em chamas sofre 1 por rodada. A água apaga — mas óleo flutua e queima até sobre ela.');
-    if (c.tiles.some((t) => t.obj && t.obj.k === 'barrel')) this.hint('barrel', 'Barris de óleo explodem quando atingidos ou empurrados contra algo: 2 de fogo ao redor.');
-    if (c.tiles.some((t) => t.obj && t.obj.k === 'bell')) this.hint('bell', 'Sinos: golpeie um sino (ou empurre algo contra ele) para atordoar todos ao redor — o ataque deles é cancelado.');
-    if (foes.some((u) => u.intent && u.intent.windup > 0)) this.hint('windup', 'Contorno LARANJA tracejado: ataque carregando. Ele só dispara na rodada seguinte — tempo de sobra para empurrar o atirador.');
-    if (c.incoming && c.incoming.length) this.hint('incoming', 'Os ⚠ no campo são reforços chegando. Parar em cima bloqueia a chegada (você leva 1 de dano).');
-    if (hero.fol <= 0) this.hint('nofol', 'Sem Fôlego! Habilidades custam Fôlego, que volta 1 por turno. Golpes básicos e Defender são grátis.');
-    if (hero.cs && hero.cs.harpoon) this.hint('harpoon', 'O arpão está fora! Use "Puxar Corda" para trazer o alvo fisgado (e o arpão) — ou pise no arpão caído para recolhê-lo.');
-    if (foes.some((u) => hasTag(u, 'boss'))) this.hint('boss', 'Guardião! Toque nele para ler suas regras especiais — cada chefe tem uma fraqueza.');
-    if (c.obj.rescue && !c.obj.rescued) this.hint('rescue', 'Um morador está preso! Fique ao lado dele e use 🔓 Libertar. Se ele morrer, o resgate falha.');
-    if (foes.some((u) => tileAtInk(c, u))) this.hint('ink', 'Tinta de lula: inimigos dentro dela têm a intenção oculta (?). Cuidado ao chegar perto.');
-  }
+export function mount(root) {
+  clear(root);
+  els = {
+    root,
+    hud: h('header.hud'),
+    main: h('main.screen', { attrs: { tabindex: '-1' } }),
+    dock: h('footer.dock'),
+    layer: h('div.layer'),
+    toasts: h('div.toasts', { attrs: { 'aria-live': 'polite' } }),
+  };
+  root.append(els.hud, els.main, els.dock, els.layer, els.toasts);
+  on('render', () => refresh());
+  on('toast', ({ text, kind }) => toastMsg(text, kind));
 }
 
-function tileAtInk(c, u) { const t = c.tiles[u.y * 7 + u.x]; return t && t.ink > 0; }
+/** Define a função que desenha o HUD: fn(hudEl, screenId). */
+export function setHud(fn) { hudFn = fn; }
 
-export { sheetOpen, openSheet, newMeta };
+/** Vai para outra tela. opts.replace = não empilhar no histórico. */
+export function go(id, params = {}, opts = {}) {
+  const def = screens.get(id);
+  if (!def) { console.error('Tela inexistente:', id); toastMsg(`Tela indisponível: ${id}`, 'bad'); return; }
+  if (cur) {
+    try { cur.def.onExit?.(); } catch (e) { console.error(e); }
+    if (!opts.replace) stack.push({ id: cur.def.id, params: cur.params });
+    if (stack.length > 30) stack.shift();
+  }
+  closeAllLayers();
+  cur = { def, params };
+  try { def.onEnter?.(params); } catch (e) { reportError(e); }
+  refresh({ scrollTop: true });
+}
+
+export function back(fallback = 'title') {
+  const prev = stack.pop();
+  if (prev) {
+    // onExit da tela atual precisa rodar também ao voltar (antes cur=null o pulava)
+    try { cur?.def.onExit?.(); } catch (e) { console.error(e); }
+    cur = null;
+    go(prev.id, prev.params, { replace: true });
+  }
+  else go(fallback, {}, { replace: true });
+}
+
+export function clearHistory() { stack.length = 0; }
+
+/** Redesenha a tela atual preservando a rolagem (salvo opts.scrollTop). */
+export function refresh(opts = {}) {
+  if (!cur || !els) return;
+  const top = opts.scrollTop ? 0 : els.main.scrollTop;
+  const showHud = cur.def.hud !== false;
+  els.hud.hidden = !showHud;
+  els.root.classList.toggle('no-hud', !showHud);
+  els.root.dataset.screen = cur.def.id;
+  clear(els.main);
+  clear(els.dock);
+  try {
+    if (showHud && hudFn) { clear(els.hud); hudFn(els.hud, cur.def.id); }
+    cur.def.render({ main: els.main, dock: els.dock, params: cur.params, refresh });
+  } catch (e) {
+    reportError(e);
+  }
+  els.dock.hidden = !els.dock.firstChild;
+  els.root.classList.toggle('has-dock', !!els.dock.firstChild);
+  els.main.scrollTop = top;
+}
+
+export function scrollToBottom() { if (els) els.main.scrollTop = els.main.scrollHeight; }
+
+// ---------------- camadas: modal / folha ----------------
+let layers = [];
+
+function closeAllLayers() { for (const l of [...layers]) l.close(); }
+
+/**
+ * modal({ title, body, buttons: [{label, kind, sub, onClick, keepOpen, disabled, why}], dismissable=true, cls })
+ * body: Node | string | () => Node   — retorna { close, el, update(body) }
+ */
+export function modal({ title, body, buttons = [], dismissable = true, cls = '', sheet = false, onClose } = {}) {
+  const box = h('div.modal', { class: `${sheet ? 'is-sheet' : ''} ${cls}`, attrs: { role: 'dialog', 'aria-modal': 'true' } });
+  const back = h('div.modal-back', box);
+  const content = h('div.modal-body');
+  let closed = false;
+  const api = {
+    el: box,
+    close() {
+      if (closed) return;
+      closed = true;
+      back.classList.add('is-closing');
+      setTimeout(() => back.remove(), 140);
+      layers = layers.filter((l) => l !== api);
+      try { onClose?.(); } catch (e) { console.error(e); }
+    },
+    update(b) { clear(content); content.append(typeof b === 'function' ? b() : (b instanceof Node ? b : h('div.prose', h('p', String(b ?? ''))))); },
+  };
+  if (title) box.append(h('div.modal-head', h('h2.modal-title', title),
+    dismissable ? button('✕', () => api.close(), { kind: ['ghost', 'icon'], title: 'Fechar' }) : null));
+  box.append(content);
+  api.update(body);
+  if (buttons.length) {
+    box.append(h('div.modal-actions', buttons.map((b) => button(b.label, () => {
+      if (!b.keepOpen) api.close();
+      b.onClick?.();
+    }, { kind: b.kind, sub: b.sub, disabled: b.disabled, why: b.why }))));
+  }
+  if (dismissable) back.addEventListener('click', (e) => { if (e.target === back) api.close(); });
+  els.layer.append(back);
+  layers.push(api);
+  return api;
+}
+
+/** Folha inferior (ideal para listas de ações/detalhes). Mesmo contrato do modal. */
+export const sheet = (o) => modal({ ...o, sheet: true });
+
+/** Confirmação: resolve true/false. */
+export function confirmBox(text, { title = 'Confirmar', yes = 'Sim', no = 'Cancelar', danger = false } = {}) {
+  return new Promise((resolve) => {
+    let answered = false;
+    modal({
+      title, body: text,
+      onClose: () => { if (!answered) resolve(false); },
+      buttons: [
+        { label: no, kind: 'ghost', onClick: () => { answered = true; resolve(false); } },
+        { label: yes, kind: danger ? 'danger' : 'primary', onClick: () => { answered = true; resolve(true); } },
+      ],
+    });
+  });
+}
+
+/** Mensagem rápida. kind: info|good|bad|warn */
+export function toastMsg(text, kind = 'info', ms = 2600) {
+  if (!els) return;
+  const t = h('div.toast', { class: `toast-${kind}` }, text);
+  els.toasts.append(t);
+  while (els.toasts.children.length > 3) els.toasts.firstChild.remove();
+  setTimeout(() => t.classList.add('is-out'), ms);
+  setTimeout(() => t.remove(), ms + 400);
+}
+
+/** Erros não devem travar o jogo: mostra aviso e mantém o jogador num lugar seguro. */
+export function reportError(e) {
+  console.error(e);
+  emit('error', e);
+  if (!els) return;
+  toastMsg(`Erro: ${e?.message || e}`, 'bad', 5000);
+}
+
+export const layoutEls = () => els;

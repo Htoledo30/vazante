@@ -1,15 +1,23 @@
 {
-  "name": "vazante",
+  "name": "icor",
   "version": "1.0.0",
   "private": true,
-  "description": "VAZANTE — A Cidade sob a Maré. RPG tático roguelite para iPhone (PWA).",
+  "description": "ICOR — O Deus Apodrecido. RPG de dark fantasy brutal para iPhone (PWA).",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "node tools/serve.mjs game 8080",
+    "dev": "node tools/serve.mjs game 8080 /icor/",
+    "dev:root": "node tools/serve.mjs game 8080 /",
     "build": "node tools/build.mjs",
-    "preview": "node tools/serve.mjs dist 8081",
+    "preview": "node tools/serve.mjs dist 8081 /icor/",
+    "icons": "node tools/gen-icons.mjs game/icons",
+    "sw": "node tools/gen-sw.mjs dist",
     "test": "node tests/run-all.mjs",
-    "test:e2e": "node tests/e2e.mjs"
+    "test:e2e": "node tests/e2e.mjs",
+    "test:e2e:dev": "node tests/e2e.mjs --dev",
+    "check": "node tools/check.mjs"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

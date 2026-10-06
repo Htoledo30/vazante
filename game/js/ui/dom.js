@@ -1,96 +1,135 @@
-// Pequenos utilitários de DOM: criação de elementos, folhas (bottom sheets), diálogos e avisos.
-import { sfx } from './audio.js';
+// Mini-framework de DOM: h() cria elementos com segurança (textContent), mais componentes comuns.
+// Todos os componentes são pensados para TOQUE: alvos >= 44px, sem hover.
+import { sfx } from '../core/bus.js';
 
-export function h(tag, props, ...children) {
-  const el = document.createElement(tag);
+/**
+ * h('div.classe#id', {props}, ...filhos)
+ * props: class, style (obj|string), on: {click: fn}, data: {k: v}, attrs: {k: v}, html (innerHTML confiável), e qualquer propriedade DOM.
+ * filhos: string | number | Node | array | null/false (ignorados)
+ */
+export function h(sel, props, ...kids) {
+  if (props instanceof Node || typeof props === 'string' || typeof props === 'number' || Array.isArray(props)) {
+    kids.unshift(props);
+    props = null;
+  }
+  const m = /^([a-z0-9-]+)?((?:[.#][\w-]+)*)$/i.exec(sel) || [];
+  const el = document.createElement(m[1] || 'div');
+  for (const part of (m[2] || '').match(/[.#][\w-]+/g) || []) {
+    if (part[0] === '.') el.classList.add(part.slice(1));
+    else el.id = part.slice(1);
+  }
   if (props) {
     for (const [k, v] of Object.entries(props)) {
       if (v == null || v === false) continue;
-      if (k === 'class') el.className = v;
-      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      if (k === 'class') String(v).split(/\s+/).filter(Boolean).forEach((c) => el.classList.add(c));
+      else if (k === 'style') { if (typeof v === 'string') el.style.cssText = v; else Object.assign(el.style, v); }
+      else if (k === 'on') for (const [ev, fn] of Object.entries(v)) el.addEventListener(ev, fn);
+      else if (k === 'data') for (const [dk, dv] of Object.entries(v)) el.dataset[dk] = dv;
+      else if (k === 'attrs') for (const [ak, av] of Object.entries(v)) el.setAttribute(ak, av);
       else if (k === 'html') el.innerHTML = v;
-      else if (k.startsWith('on') && typeof v === 'function') {
-        const ev = k.slice(2).toLowerCase();
-        if (ev === 'tap') el.addEventListener('click', (e) => { sfx('tap'); v(e); });
-        else el.addEventListener(ev, v);
-      } else if (k === 'disabled') { if (v) el.setAttribute('disabled', ''); }
-      else el.setAttribute(k, v === true ? '' : v);
+      else el[k] = v;
     }
   }
-  add(el, children);
+  append(el, kids);
   return el;
 }
 
-function add(el, children) {
-  for (const c of children) {
-    if (c == null || c === false) continue;
-    if (Array.isArray(c)) add(el, c);
-    else if (c instanceof Node) el.appendChild(c);
-    else el.appendChild(document.createTextNode(String(c)));
+export function append(el, kids) {
+  for (const k of kids.flat(Infinity)) {
+    if (k == null || k === false || k === true) continue;
+    el.appendChild(k instanceof Node ? k : document.createTextNode(String(k)));
   }
+  return el;
 }
 
-export function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); return el; }
+export function clear(el) { while (el && el.firstChild) el.removeChild(el.firstChild); return el; }
 
-let toastTimer = null;
-export function toast(msg, ms = 2200, cls = '') {
-  document.querySelectorAll('.toast:not(.update)').forEach((t) => t.remove());
-  const t = h('div', { class: 'toast ' + cls, role: 'status' }, msg);
-  document.body.appendChild(t);
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.remove(), ms);
-  return t;
-}
-
-const stack = [];
-export function openSheet({ title, body, onClose, wide = false, centered = false }) {
-  const ov = h('div', { class: 'overlay' + (centered ? ' centered' : '') });
-  const close = () => {
-    ov.remove();
-    const i = stack.indexOf(close);
-    if (i >= 0) stack.splice(i, 1);
-    if (onClose) onClose();
+/** Evita toque duplo acidental (ex.: dois ataques num toque rápido). */
+let lastTap = 0;
+function guardTap(fn) {
+  return (e) => {
+    const now = performance.now();
+    if (now - lastTap < 180) { e.preventDefault(); return; }
+    lastTap = now;
+    fn(e);
   };
-  const content = typeof body === 'function' ? body(close) : body;
-  const sh = centered
-    ? h('div', { class: 'dialog' }, title ? h('h2', null, title) : null, content)
-    : h('div', { class: 'sheet' },
-      h('div', { class: 'sh-head' }, h('h2', null, title || ''), h('button', { class: 'btn icon ghost', 'aria-label': 'Fechar', onTap: close }, '✕')),
-      h('div', { class: 'scroll' }, content));
-  ov.appendChild(sh);
-  ov.addEventListener('click', (e) => { if (e.target === ov && !centered) close(); });
-  document.body.appendChild(ov);
-  stack.push(close);
-  return close;
 }
 
-export function closeAllSheets() { while (stack.length) stack[stack.length - 1](); }
-export function sheetOpen() { return stack.length > 0; }
-
-export function confirmBox(text, okText = 'Confirmar', danger = false) {
-  return new Promise((resolve) => {
-    let done = false;
-    const close = openSheet({
-      centered: true,
-      body: (cl) => h('div', null,
-        h('p', null, text),
-        h('div', { class: 'row', style: { marginTop: '14px' } },
-          h('button', { class: 'btn ghost', style: { flex: 1 }, onTap: () => { done = true; cl(); resolve(false); } }, 'Cancelar'),
-          h('button', { class: 'btn ' + (danger ? 'danger' : 'primary'), style: { flex: 1 }, onTap: () => { done = true; cl(); resolve(true); } }, okText))),
-      onClose: () => { if (!done) resolve(false); },
-    });
-    void close;
-  });
+/**
+ * Botão padrão.
+ * opts: kind ('primary'|'danger'|'ghost'|'blood'|'small'|'wide'), disabled, sub (linha secundária: custo/chance),
+ *       why (texto explicando por que está desabilitado — mostrado como sub e ao tocar), icon, badge, sound
+ */
+export function button(label, onClick, opts = {}) {
+  const kinds = [].concat(opts.kind || []).map((k) => `btn-${k}`).join(' ');
+  const b = h('button.btn', { class: kinds, type: 'button' },
+    opts.icon ? h('span.btn-icon', { attrs: { 'aria-hidden': 'true' } }, opts.icon) : null,
+    h('span.btn-body',
+      h('span.btn-label', label),
+      (opts.sub || (opts.disabled && opts.why)) ? h('span.btn-sub', opts.disabled && opts.why ? opts.why : opts.sub) : null),
+    opts.badge != null ? h('span.btn-badge', String(opts.badge)) : null);
+  if (opts.disabled) {
+    b.classList.add('is-disabled');
+    b.setAttribute('aria-disabled', 'true');
+    b.addEventListener('click', guardTap(() => {
+      sfx('deny');
+      if (opts.why) import('./app.js').then((m) => m.toastMsg(opts.why, 'warn'));
+    }));
+  } else if (onClick) {
+    b.addEventListener('click', guardTap((e) => { sfx(opts.sound || 'tap'); onClick(e); }));
+  }
+  if (opts.title) b.setAttribute('aria-label', opts.title);
+  return b;
 }
 
-export function alertBox(title, text, okText = 'Ok') {
-  return new Promise((resolve) => {
-    openSheet({
-      centered: true, title,
-      body: (cl) => h('div', null,
-        ...(Array.isArray(text) ? text : [text]).map((t) => (t instanceof Node ? t : h('p', null, t))),
-        h('button', { class: 'btn primary block', style: { marginTop: '14px' }, onTap: () => { cl(); } }, okText)),
-      onClose: resolve,
-    });
-  });
+/** Barra de recurso: bar(valor, max, 'hp'|'stam'|'dread'|'corr'|'light'|'xp'|...) */
+export function bar(value, max, kind = 'hp', label) {
+  const p = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  return h('div.bar', { class: `bar-${kind}`, attrs: { role: 'meter', 'aria-valuenow': String(value), 'aria-valuemax': String(max) } },
+    h('div.bar-fill', { style: { width: `${p}%` } }),
+    h('div.bar-text', label ?? `${Math.round(value)}/${Math.round(max)}`));
+}
+
+/** Etiqueta pequena (estado, tag, propriedade). kind: 'bad'|'good'|'warn'|'info'|'rot'|'blood' */
+export function chip(text, kind = '', title) {
+  const c = h('span.chip', { class: kind ? `chip-${kind}` : '' }, text);
+  if (title) c.addEventListener('click', () => import('./app.js').then((m) => m.toastMsg(title, 'info')));
+  return c;
+}
+
+export function section(title, ...kids) {
+  return h('section.panel', title ? h('h3.panel-title', title) : null, ...kids);
+}
+
+/** Linha chave/valor */
+export function kv(k, v, kind) {
+  return h('div.kv', h('span.kv-k', k), h('span.kv-v', { class: kind ? `t-${kind}` : '' }, v));
+}
+
+/** Texto narrativo (parágrafos separados por \n\n). */
+export function prose(text) {
+  return h('div.prose', String(text || '').split(/\n\n+/).map((p) => h('p', p)));
+}
+
+/** Grade de botões (2 colunas por padrão). */
+export function grid(kids, cols = 2) {
+  return h('div.grid', { class: `grid-${cols}` }, kids);
+}
+
+/** Abas simples: tabs([{id,label}], activeId, onPick) */
+export function tabs(list, active, onPick) {
+  return h('div.tabs', { attrs: { role: 'tablist' } }, list.map((t) =>
+    h('button.tab', {
+      type: 'button', class: t.id === active ? 'is-active' : '',
+      attrs: { role: 'tab', 'aria-selected': String(t.id === active) },
+      on: { click: guardTap(() => { sfx('tap'); onPick(t.id); }) },
+    }, t.label, t.badge ? h('span.tab-badge', String(t.badge)) : null)));
+}
+
+/** Vibração curta (onde suportado; iOS Safari ignora silenciosamente). Respeita Configurações → Vibração. */
+let hapticsOn = true;
+export function setHapticsEnabled(v) { hapticsOn = !!v; }
+export function haptic(ms = 12) {
+  if (!hapticsOn) return;
+  try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(ms); } catch { /* ignore */ }
 }

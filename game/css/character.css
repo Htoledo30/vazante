@@ -1,0 +1,70 @@
+/* Área A — HUD, criação, ficha, nível, mutação, saque (.ch-) */
+
+/* ---------- HUD ---------- */
+.ch-hud { display: flex; flex-direction: column; gap: 5px; }
+.ch-hud-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ch-hud-name {
+  appearance: none; background: none; border: 0; color: var(--bone); padding: 2px 0; min-height: 34px;
+  display: flex; align-items: baseline; gap: 6px; max-width: 38%; min-width: 0; cursor: pointer; text-align: left;
+}
+.ch-hud-nm { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-hud-lv { font: 11px var(--mono); color: var(--muted); }
+.ch-hud-alert { font-size: 13px; }
+.ch-hud-bars { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 5px; min-width: 0; }
+.ch-hud-meter { display: flex; align-items: center; gap: 3px; min-width: 0; }
+.ch-hud-meter .bar { flex: 1; height: 14px; min-width: 0; }
+.ch-hud-meter .bar-text { font-size: 10px; line-height: 12px; }
+.ch-hud-ico { font-size: 12px; width: 12px; text-align: center; color: var(--ink2); }
+.ch-hud-hp .ch-hud-ico { color: var(--bad); }
+.ch-hud-dread .ch-hud-ico { color: var(--dread); }
+.ch-hud-corr .ch-hud-ico { color: var(--corr); }
+.ch-hud-world { justify-content: space-between; }
+.ch-hud-chips { display: flex; flex-wrap: wrap; gap: 4px 8px; font: 12px var(--mono); color: var(--ink2); min-width: 0; }
+.ch-hud-chip { white-space: nowrap; }
+.ch-hud .btn-small { min-height: 34px; min-width: 40px; padding: 2px 8px; }
+
+/* ---------- criação ---------- */
+.ch-title { font-size: 24px; letter-spacing: .04em; margin: 4px 0 2px; }
+.ch-name-input {
+  flex: 1; min-width: 0; min-height: var(--tap); padding: 8px 12px; border-radius: var(--r);
+  border: 1px solid var(--line2); background: #0e0b09; color: var(--bone); font-size: 18px;
+}
+.ch-bg-list { display: flex; flex-direction: column; gap: 8px; }
+.ch-bg-card {
+  appearance: none; text-align: left; width: 100%; padding: 10px 12px; border-radius: var(--r);
+  border: 1px solid var(--line); background: #15110e; color: var(--ink); cursor: pointer;
+}
+.ch-bg-card.is-selected { border-color: var(--ichor); background: linear-gradient(#241a10, #16110d); box-shadow: inset 0 0 0 1px #c9a24a55; }
+.ch-bg-name { font-weight: 700; font-size: 16px; }
+.ch-bg-short { font-size: 13px; color: var(--ink2); margin-top: 2px; }
+.ch-bg-more { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; border-top: 1px dashed #3a2d24; padding-top: 6px; }
+.ch-attr-row { display: grid; grid-template-columns: 1fr 46px 34px 46px; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px dashed #2a221c; }
+.ch-attr-row:last-child { border-bottom: 0; }
+.ch-attr-label { min-width: 0; }
+.ch-attr-val { text-align: center; font: 700 20px var(--mono); color: var(--bone); }
+
+/* ---------- ficha ---------- */
+.ch-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.ch-hname { margin: 0; font-size: 22px; }
+.ch-slots { display: flex; flex-direction: column; gap: 6px; }
+.ch-load { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 0 0 10px; }
+.ch-entry { padding: 6px 0; border-bottom: 1px dashed #2a221c; }
+.ch-entry:last-child { border-bottom: 0; }
+.ch-entry.is-locked { opacity: .5; }
+.ch-wound .grid { margin-top: 8px; }
+.ch-alert { border-color: var(--corr); }
+.ch-mut { border-color: #6a2a69; background: linear-gradient(#1f0f1f, #150d12); }
+.ch-item-lines { display: flex; flex-direction: column; gap: 3px; }
+.ch-compare { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ch-lines { display: flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 14px; }
+.ch-line { padding: 2px 0; }
+
+/* ---------- saque ---------- */
+.ch-loot-money { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font: 600 16px var(--mono); }
+.ch-loot-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-bottom: 6px; }
+.ch-loot-row .btn-left { opacity: .55; }
+.ch-loot-row.is-selected .btn-left { opacity: 1; border-color: var(--ichor); }
+.ch-loot-row .btn-small { min-width: 44px; }
+.t-ichor { color: var(--ichor); }
+.t-info { color: #9cc2dc; }
+.t-blood { color: var(--blood2); }

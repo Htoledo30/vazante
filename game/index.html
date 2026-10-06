@@ -2,32 +2,39 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b1622">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0908">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="VAZANTE — RPG tático roguelite sobre a maré que revela uma cidade afogada.">
+  <meta name="description" content="ICOR — RPG de dark fantasy brutal. Um deus apodrece no Ermo. Colha seu sangue antes que a Chaga engula Valdrem.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Vazante">
-  <meta name="format-detection" content="telephone=no">
-  <title>Vazante — A Cidade sob a Maré</title>
+  <meta name="apple-mobile-web-app-title" content="ICOR">
+  <meta name="format-detection" content="telephone=no, email=no, address=no">
+  <title>ICOR — O Deus Apodrecido</title>
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/shell.css">
+  <link rel="stylesheet" href="css/character.css">
+  <link rel="stylesheet" href="css/combat.css">
+  <link rel="stylesheet" href="css/expedition.css">
+  <link rel="stylesheet" href="css/city.css">
+  <link rel="stylesheet" href="css/events.css">
 </head>
 <body>
-  <div id="app" aria-live="polite">
+  <div id="app">
     <div class="boot">
-      <div class="boot-title">VAZANTE</div>
-      <div class="boot-sub">carregando a maré…</div>
+      <div class="boot-title">ICOR</div>
+      <div class="boot-sub">o sangue do deus ainda escorre…</div>
       <noscript><p>Este jogo precisa de JavaScript ativado.</p></noscript>
     </div>
   </div>
-  <div id="rotate" class="rotate-msg" role="alert">
-    <div>📱↻</div>
-    <p>Vazante foi feito para o celular em pé.<br>Gire o aparelho para a posição retrato.</p>
+  <div id="rotate" class="rotate-msg" role="alert" aria-live="polite">
+    <div aria-hidden="true">↻</div>
+    <p>ICOR foi feito para o celular em pé.<br>Gire o aparelho para a posição retrato.</p>
   </div>
   <script type="module" src="js/main.js"></script>
 </body>

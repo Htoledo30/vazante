@@ -1,4 +1,4 @@
-name: Publicar Vazante
+name: Publicar ICOR
 on:
   push:
     branches: [main]
@@ -21,7 +21,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm run build
+      # O jogo não tem dependências de runtime; os testes Node também não (Playwright só no e2e local).
+      - name: Testes
+        run: npm test
+      - name: Verificar integração
+        run: node tools/check.mjs --quiet
+      - name: Build
+        run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

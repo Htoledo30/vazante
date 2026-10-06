@@ -1,4 +1,0 @@
-arpoadora alcance por distrito 4/4/0/0 {"death@D1 c1":1,"death@D2 c6":1,"death@D1 c3":2,"death@D2 c10":1,"death@D2 c9":1,"death@D1 c2":1,"death@D2 c5":1}
-faroleiro alcance por distrito 4/2/0/2 {"death@D2 c7":1,"death@D1 c2":3,"death@D2 c9":1,"death@D1 c5":1,"ending@D4":1,"death@D4 c16":1}
-mergulhadora alcance por distrito 1/3/2/2 {"death@D2 c8":1,"ending@D4":2,"death@D3 c13":1,"death@D2 c7":2,"death@D1 c3":1,"death@D3 c10":1}
-cantora alcance por distrito 2/4/0/2 {"death@D2 c9":2,"death@D1 c3":1,"ending@D4":2,"death@D1 c5":1,"death@D2 c8":1,"death@D2 c6":1}

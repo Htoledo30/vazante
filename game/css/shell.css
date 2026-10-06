@@ -1,0 +1,155 @@
+/* ICOR — shell (área F): título, menus, codex, configurações, instalação, backup. Prefixo .sh- */
+
+/* ---------- toque, zoom, viewport ---------- */
+html, body, #app { touch-action: manipulation; }
+textarea, input, select { font-size: max(16px, 1rem); } /* < 16px faz o iOS dar zoom ao focar */
+#app.sh-kb-open { bottom: auto; height: var(--app-h, 100%); }
+#app.sh-kb-open .dock { display: none; }
+html.sh-reduce-motion *, html.sh-reduce-motion *::before, html.sh-reduce-motion *::after {
+  animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sh-drop, .sh-drop::after, .sh-logo-word::after { animation: none !important; }
+}
+
+/* ---------- títulos genéricos ---------- */
+.sh-h1 { font-size: 24px; letter-spacing: .06em; margin: 4px 0 10px; color: var(--bone); }
+.sh-lead { color: var(--ink2); margin: 0 0 12px; }
+
+/* ---------- tela de título ---------- */
+#app[data-screen="title"] {
+  background:
+    radial-gradient(80% 45% at 50% 22%, #5a0d0f55 0%, transparent 70%),
+    radial-gradient(130% 70% at 50% 120%, #2a1a05 0%, transparent 60%),
+    linear-gradient(#070505, #0b0908 40%, #080606);
+}
+#app[data-screen="title"] .dock { background: linear-gradient(#0a0707cc, #070505); border-top-color: #2a1d17; }
+.sh-title { min-height: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 14px; padding-top: 4vh; }
+
+.sh-logo { display: flex; flex-direction: column; align-items: center; gap: 2px; user-select: none; }
+.sh-logo-mark { height: 64px; display: flex; align-items: flex-end; justify-content: center; }
+.sh-drop {
+  position: relative; width: 34px; height: 34px;
+  background: radial-gradient(circle at 35% 30%, #fff3c4 0%, #f0c548 18%, #c08a1c 55%, #6a4307 100%);
+  border-radius: 0 50% 50% 50%; transform: rotate(45deg);
+  box-shadow: 0 0 22px #d8b23a77, 0 0 60px #a3121b55;
+  animation: sh-pulse 3.2s ease-in-out infinite;
+}
+.sh-drop::after { /* pupila em fenda */
+  content: ""; position: absolute; left: 50%; top: 50%; width: 5px; height: 20px; border-radius: 50%;
+  background: #120303; transform: translate(-50%, -50%) rotate(-45deg);
+  box-shadow: 0 0 0 2px #7a120688;
+  animation: sh-blink 7s infinite;
+}
+.sh-logo-word {
+  position: relative;
+  font-size: clamp(64px, 24vw, 112px); line-height: .95; font-weight: 700; letter-spacing: .2em; padding-left: .2em;
+  background: linear-gradient(180deg, #fff1bf 0%, #e6bb47 32%, #a9741a 62%, #5b3505 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 #1a0606) drop-shadow(0 0 18px #a3121b66);
+}
+.sh-logo-word::after { /* escorrido de sangue sob o C */
+  content: ""; position: absolute; left: 56%; top: 88%; width: 6px; height: 26px; border-radius: 0 0 4px 4px;
+  background: linear-gradient(#b8860f, #7a0f15); transform-origin: top; animation: sh-drip 6s ease-in infinite;
+}
+.sh-logo-rule { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 340px; margin-top: 10px; color: var(--ink2); }
+.sh-logo-rule span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #7a0f15, transparent); }
+.sh-logo-rule em { font-style: normal; font-size: 13px; letter-spacing: .38em; text-transform: uppercase; white-space: nowrap; }
+.sh-tagline { text-align: center; color: var(--muted); font-style: italic; margin: 0; font-size: 15px; }
+
+@keyframes sh-pulse { 0%, 100% { box-shadow: 0 0 18px #d8b23a66, 0 0 50px #a3121b44; } 50% { box-shadow: 0 0 30px #d8b23aaa, 0 0 80px #a3121b77; } }
+@keyframes sh-blink { 0%, 92%, 100% { height: 20px; } 95% { height: 2px; } }
+@keyframes sh-drip { 0% { transform: scaleY(0); opacity: 0; } 15% { opacity: 1; } 70% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1.15); opacity: 0; } }
+
+.sh-update {
+  border: 1px solid #8a6a22; background: linear-gradient(#2a200b, #1b1407); border-radius: var(--r2);
+  padding: 10px 12px; display: grid; gap: 6px;
+}
+.sh-update .btn { justify-self: start; }
+.sh-update-note { border-left: 3px solid var(--ichor); padding: 6px 10px; margin: 0 0 10px; background: #1f1808; font-size: 14px; }
+
+.sh-save {
+  border: 1px solid var(--line2); border-radius: var(--r2); padding: 12px 14px;
+  background: linear-gradient(135deg, #1d1411, #120d0b); position: relative; overflow: hidden;
+}
+.sh-save::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: linear-gradient(var(--blood2), var(--blood)); }
+.sh-save-house { font-size: 18px; font-weight: 700; color: var(--bone); letter-spacing: .03em; }
+.sh-save-hero { color: var(--ink); margin: 2px 0 6px; }
+.sh-save-meta { margin: 0 0 4px; }
+
+.sh-menu .btn { min-height: 56px; }
+.sh-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); padding-top: 8px; }
+
+/* ---------- menu de pausa ---------- */
+.sh-pause-status { padding: 4px 2px 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.sh-pause-house { font-weight: 700; font-size: 17px; }
+.sh-pause .btn-icon { width: 22px; text-align: center; color: var(--ichor); }
+
+/* ---------- configurações ---------- */
+.sh-set-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed #2a221c; }
+.sh-set-row:last-of-type { border-bottom: 0; }
+.sh-set-text { flex: 1; min-width: 0; }
+.sh-set-label { font-weight: 600; }
+.sh-set-row > .btn { flex: 0 0 auto; min-width: 104px; min-height: 44px; }
+.sh-stepper { display: flex; align-items: center; gap: 6px; }
+.sh-stepper .btn { min-width: 44px; min-height: 44px; font-size: 20px; }
+.sh-stepper-val { min-width: 46px; text-align: center; }
+.sh-seg { display: flex; gap: 4px; }
+.sh-seg .btn { min-height: 44px; padding: 4px 8px; }
+
+/* ---------- codex / ajuda ---------- */
+.sh-codex-head { margin-bottom: 4px; }
+.sh-help-body p { margin: 0 0 10px; }
+.sh-help-list { margin: 0 0 10px; padding-left: 20px; }
+.sh-help-list li { margin: 0 0 6px; }
+.sh-help-list li::marker { color: var(--blood2); }
+.sh-help-tip { border-left: 3px solid var(--ichor); padding: 6px 10px; background: #1d1708; color: var(--ink); border-radius: 0 8px 8px 0; }
+.sh-help-tip b { color: var(--ichor); }
+.sh-help-see { margin-top: 12px; display: grid; gap: 6px; }
+.sh-help-btn {
+  appearance: none; -webkit-appearance: none;
+  min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; flex: 0 0 auto;
+  border-radius: 50%; border: 1px solid #6a5220; background: radial-gradient(circle at 40% 35%, #3a2c10, #1a1307);
+  color: var(--ichor); font: 700 17px/1 var(--font); cursor: pointer; touch-action: manipulation;
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+}
+.sh-help-btn:active { filter: brightness(1.4); transform: scale(.95); }
+.sh-hint-sheet .modal-title { color: var(--ichor); }
+.sh-help-sheet .modal-title, .sh-hint-sheet .modal-title { letter-spacing: .02em; }
+
+/* ---------- instalação ---------- */
+.sh-steps { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.sh-step { display: flex; gap: 12px; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px; }
+.sh-step-n {
+  flex: 0 0 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(#7a0f15, #4f080d); color: #fff; font-weight: 700; border: 1px solid var(--blood2);
+}
+.sh-step-title { font-weight: 700; margin-bottom: 2px; }
+.sh-glyph { display: inline-block; border: 1px solid var(--ink2); border-radius: 4px; padding: 0 4px; font-size: 13px; }
+.sh-installed { display: flex; gap: 12px; align-items: center; border-color: #4d6a32; }
+.sh-installed-mark { font-size: 28px; color: var(--good); }
+.sh-warn { border-color: #8a6a22; background: #221a0a; }
+
+/* ---------- backup ---------- */
+.sh-code {
+  width: 100%; margin: 8px 0; padding: 10px; resize: vertical; min-height: 84px;
+  background: #0a0807; border: 1px solid var(--line2); border-radius: var(--r); color: var(--ink2);
+  font-family: var(--mono); font-size: 16px; line-height: 1.3; word-break: break-all;
+}
+.sh-code:focus { outline: none; border-color: var(--ichor); }
+
+/* ---------- créditos ---------- */
+.sh-credits { display: grid; gap: 18px; padding-top: 4vh; }
+.sh-credits .prose { text-align: center; }
+
+/* ---------- telas pequenas (iPhone SE) ---------- */
+@media (max-height: 640px) {
+  .sh-title { padding-top: 0; gap: 10px; }
+  .sh-logo-mark { height: 44px; }
+  .sh-logo-word { font-size: clamp(54px, 20vw, 84px); }
+  .sh-menu .btn { min-height: 48px; }
+}
+
+/* ---------- extras ---------- */
+.sh-save-dead { margin-top: 6px; font-size: 13px; color: #c98a84; font-style: italic; }
+.sh-saved { color: var(--good); margin-top: 2px; }

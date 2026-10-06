@@ -1,0 +1,127 @@
+// Eventos noturnos (viagem ou acampamento à noite). pool 'night' — também entram em 'field'/'camp' quando é noite.
+import {
+  BG, TR, FAC, MED, DIF, BRU, LT, FERA, MORTO, HUMANO, ELITE, ENXAME,
+  hp, dmg, heal, dread, corr, coin, ichor, item, take, loot, wound, trait, mutation, rep, chaga, time, light, flag, fight,
+  reveal, journal, rnd,
+  has, bg, tr, fl, corrMin, dreadMin, any, not, COMPANION, ck, mod, res,
+} from './_h.js';
+
+export default [
+  {
+    id: 'night_fogos_icor', pool: 'night', region: 'any', tags: ['noite', 'icor'], w: 2,
+    title: 'Fogos dourados',
+    text: 'Luzinhas douradas flutuam sobre o campo, baixas, pulsando. Onde elas param, o chão brilha. Dizem que são almas bêbadas de Icor. Dizem muita coisa.',
+    options: [
+      { label: 'Seguir as luzes (2h)', cost: [time(2)],
+        success: res('', rnd(
+          [45, [ichor(2), corr(2)], 'Elas te levam a uma poça de Icor puro e se apagam, satisfeitas.'],
+          [30, [dread(8), reveal(1)], 'Elas te levam a um lugar onde muita gente morreu. E ficam olhando.'],
+          [25, [fight([MORTO, MORTO], { ambush: 'enemy' })], 'Elas te levam até os que as seguiram antes.'],
+        )) },
+      { label: 'Apanhar uma no frasco', check: ck('des', DIF),
+        success: res('Ela bate no vidro como mariposa. Depois se dissolve em Icor.', ichor(1), corr(1)),
+        fail: res('Ela atravessa sua mão. Queima por dentro.', dmg(5), corr(3)) },
+      { label: 'Ignorar', success: res('Elas seguem você por um tempo, curiosas.', dread(2)) },
+    ],
+  },
+  {
+    id: 'night_choro', pool: 'night', region: 'any', tags: ['noite', 'horror', 'criancas'], w: 2,
+    title: 'Choro no escuro',
+    text: 'Um bebê chora em algum lugar à esquerda, fora do alcance da luz. Choro fino, sem fôlego. Não para nem para respirar.',
+    options: [
+      { label: 'Ir até o choro', kind: 'danger',
+        success: res('Não é um bebê. É uma boca na barriga de algo que imita bebês.', fight([MORTO, FERA], { ambush: 'enemy', onWin: [ichor(1)] }), dread(8)) },
+      { label: 'Jogar a tocha na direção', cond: has('tocha'),
+        success: res('A luz revela por um instante: uma coisa alta, curvada, de boca aberta. Ela foge da luz. Você também.', dread(6), time(1)) },
+      { label: '“Bebês respiram.” Seguir em frente', check: ck('von', MED),
+        success: res('Você não vira o rosto. O choro te acompanha meia hora e desiste.', dread(2)),
+        fail: res('Você vira. Só uma vez. Basta para nunca esquecer o que viu.', dread(12)) },
+    ],
+  },
+  {
+    id: 'night_procissao', pool: 'night', region: 'any', tags: ['noite', 'mortos', 'fe'], w: 2,
+    title: 'Procissão de velas',
+    text: 'Uma fila de vultos com velas acesas atravessa o caminho em silêncio. Pés descalços que não tocam o chão. O último da fila carrega uma vela apagada e olha para você.',
+    options: [
+      { label: 'Esconder-se até passarem', check: ck('des', MED),
+        success: res('Eles passam. O último hesita onde você está, depois segue.', dread(4)),
+        fail: res('A vela apagada se acende quando ele olha para você.', dread(15), corr(2)) },
+      { label: 'Acender a vela dele', cond: has('tocha'), cost: [take('tocha')],
+        success: res('Ele inclina a cabeça. Na manhã seguinte você acorda com a mochila mais pesada.', loot(LT.cripta), dread(-6)) },
+      { label: 'Rezar pelos mortos', check: ck('von', MED, [mod(tr(TR.piedoso), 20, 'piedoso')]),
+        success: res('As velas tremem todas juntas, como num suspiro. A fila some.', dread(-10), rep('sutura', 2)),
+        fail: res('Eles param e olham para você. Todos.', dread(12)) },
+      { label: 'Juntar-se à procissão', cond: corrMin(40), tag: 'Corrompido', kind: 'danger',
+        success: res('Você caminha com eles até o amanhecer e volta sem lembrar. Nas mãos, cera e Icor.', ichor(3), corr(6), time(4)) },
+    ],
+  },
+  {
+    id: 'night_olhos_fome', pool: 'night', region: 'any', tags: ['noite', 'fera'], w: 2,
+    title: 'Algo te segue',
+    text: 'Passos que param quando você para. Respiração pesada atrás das pedras. Faz uma hora que algo grande te acompanha, sem pressa.',
+    options: [
+      { label: 'Correr para o próximo abrigo', check: ck('des', MED),
+        success: res('Você corre até os pulmões rasgarem. Ele desiste na luz da manhã.', dmg(2), time(1)),
+        fail: res('Você tropeça. Ele não.', fight([FERA, FERA], { ambush: 'enemy' })) },
+      { label: 'Virar e encarar', kind: 'blood',
+        success: res('Melhor ver de frente o que vai te matar.', fight([ELITE], { onWin: [ichor(3), dread(-15)] })) },
+      { label: 'Esconder-se e esperar', check: ck('ast', MED, [mod(has('sebo'), 10, 'sebo no cheiro')]),
+        success: res('Ele passa a dois palmos de você, fungando. Vai embora.', dread(6)),
+        fail: res('Ele te acha pelo cheiro do medo.', fight([FERA], { ambush: 'enemy' })) },
+    ],
+  },
+  {
+    id: 'night_sino', pool: 'night', region: 'any', tags: ['noite', 'fe'], w: 2,
+    title: 'O sino de treze',
+    text: 'Um sino toca ao longe, onde não há torre nenhuma. Treze badaladas. Você conta duas vezes. Treze.',
+    options: [
+      { label: 'Seguir o som (3h)', cost: [time(3)],
+        success: res('Uma capela afundada na lama, o sino ainda balançando sozinho. No altar, oferendas de quem chegou antes.', loot(LT.cripta), dread(6)) },
+      { label: 'Tapar os ouvidos e seguir',
+        success: res('O som entra pelos dentes.', dread(5)) },
+      { label: 'Responder com o seu sino', cond: bg(BG.flagelante), tag: 'Flagelante',
+        success: res('Você bate o sininho de penitente treze vezes. O outro sino se cala. Algo foi devolvido ao lugar.', dread(-12), rep('sutura', 3)) },
+    ],
+  },
+  {
+    id: 'night_lua_dourada', pool: 'night', region: 'any', tags: ['noite', 'icor'], w: 1, cooldown: 10,
+    title: 'Lua de Icor',
+    text: 'A lua nasce dourada e grossa. Sob ela, o Icor sobe da terra como orvalho, gotas brilhando em cada folha morta. É lindo. É uma armadilha. É as duas coisas.',
+    options: [
+      { label: 'Colher o orvalho a noite toda (4h)', cost: [time(4)],
+        success: res('Frasco atrás de frasco. Ao amanhecer, sua pele também brilha um pouco.', ichor(3), corr(5)) },
+      { label: 'Colher só um pouco (1h)', cost: [time(1)],
+        success: res('O bastante. Você para antes de querer mais.', ichor(1), corr(1)) },
+      { label: 'Cobrir-se e esperar',
+        success: res('As coisas da noite estão bêbadas de Icor. Melhor não estar lá fora com elas.', dread(3)) },
+    ],
+  },
+  {
+    id: 'night_estrela_cai', pool: 'night', region: 'any', tags: ['noite', 'fe'], w: 1, cooldown: 10,
+    title: 'Um pedaço do céu',
+    text: 'Uma luz risca o céu e cai a meia légua, com um baque que você sente nos dentes. Lá do Cadáver, dizem, ainda caem pedaços do deus.',
+    options: [
+      { label: 'Ir até o lugar (2h)', cost: [time(2)], check: ck('vig', MED),
+        success: res('Na cratera fumegante, uma lasca branca como osso, ainda quente.', item('lasca_divina'), item('lasca_divina'), dmg(3)),
+        fail: res('Outros chegaram antes. Bebedores, de joelhos, lambendo a cratera. Eles não gostam de visitas.', fight(['bebedor', 'bebedor'], { onWin: [item('lasca_divina')] })) },
+      { label: 'Fazer um pedido', success: res('Superstição de criança. Mas você faz.', dread(-4)) },
+    ],
+  },
+  {
+    id: 'night_vozes_nomes', pool: 'night', region: 'any', tags: ['noite', 'pavor'], w: 2, cond: dreadMin(35),
+    title: 'Chamam seu nome',
+    text: 'Do escuro, vozes conhecidas chamam “{nome}”. Sua mãe. Um amigo morto. Você mesmo, numa voz mais velha.',
+    options: [
+      { label: 'Responder', kind: 'danger',
+        success: res('', rnd(
+          [50, [dread(15), corr(2)], 'Elas riem. Todas ao mesmo tempo, com a mesma boca.'],
+          [50, [fight([MORTO, MORTO], { ambush: 'enemy' })], 'Elas vêm buscar a resposta.'],
+        )) },
+      { label: 'Cantar alto até amanhecer', check: ck('von', MED),
+        success: res('Você canta uma canção de taverna, desafinado, aos berros. As vozes não sabem a letra.', dread(-8)),
+        fail: res('A voz falha. Elas cantam o resto por você.', dread(10)) },
+      { label: 'Tomar papoula', cost: [take('papoula')],
+        success: res('As vozes viram música. Depois, nada.', dread(-20), time(2)) },
+    ],
+  },
+];

@@ -1,0 +1,65 @@
+/* Área E — tela de eventos narrativos (.ev-) */
+.ev-wrap { padding: 6px 2px 8px; }
+.ev-where { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 8px; }
+.ev-title {
+  font-size: 23px; line-height: 1.15; letter-spacing: .02em; margin: 2px 0 10px;
+  color: var(--bone);
+  text-shadow: 0 2px 0 #000, 0 0 18px #a3121b33;
+}
+.ev-pool-city .ev-title { text-shadow: 0 2px 0 #000, 0 0 18px #c9a24a26; }
+.ev-pool-shrine .ev-title { color: #efe1c0; text-shadow: 0 2px 0 #000, 0 0 22px #d8b23a40; }
+.ev-pool-night .ev-title, .ev-pool-camp .ev-title { text-shadow: 0 2px 0 #000, 0 0 22px #7a5fa844; }
+.ev-pool-ruin .ev-title { text-shadow: 0 2px 0 #000, 0 0 18px #7d9a3a33; }
+
+.ev-text {
+  position: relative;
+  padding: 12px 14px; margin: 0 0 10px;
+  border-left: 3px solid var(--blood);
+  background: linear-gradient(90deg, #1d1411, #140f0d 70%, transparent);
+  border-radius: 0 var(--r) var(--r) 0;
+  font-size: 17px; line-height: 1.5;
+}
+.ev-pool-shrine .ev-text { border-left-color: var(--ichor); }
+.ev-pool-city .ev-text { border-left-color: var(--rust); }
+.ev-pool-camp .ev-text, .ev-pool-night .ev-text { border-left-color: var(--dread); }
+.ev-pool-ruin .ev-text { border-left-color: var(--rot); }
+.ev-text.is-past { opacity: .62; font-size: 15px; }
+.ev-hint { color: var(--ichor); margin: 4px 2px 8px; opacity: .9; }
+
+/* opções no dock: rolam se forem muitas */
+#app[data-screen="event"] .dock { max-height: 58%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.ev-options { display: flex; flex-direction: column; gap: 8px; }
+.ev-options .btn { min-height: 54px; }
+.ev-options .btn-icon { color: var(--ichor); width: 18px; text-align: center; }
+.ev-options .btn-sub { text-align: left; }
+
+/* resultado */
+.ev-result { margin-top: 6px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r2); background: #15100e; animation: fadein .25s ease; }
+.ev-result.is-ok { border-color: #3f5a2a; }
+.ev-result.is-fail { border-color: #6a1b17; background: linear-gradient(#1d0d0b, #140c0a); }
+.ev-chosen { margin-bottom: 8px; font-style: italic; color: var(--ink2); }
+.ev-chosen > div { font-style: normal; color: var(--ink); font-weight: 600; }
+.ev-roll { display: flex; align-items: center; gap: 10px; padding: 6px 0 10px; border-bottom: 1px dashed #2f241d; margin-bottom: 10px; }
+.ev-roll-die {
+  width: 42px; height: 42px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  font: 700 17px/1 var(--mono); border-radius: 8px; border: 1px solid var(--line2); background: #0e0a09;
+  animation: ev-die .5s ease;
+}
+.ev-roll.is-ok .ev-roll-die { border-color: #5c7f3c; color: var(--good); }
+.ev-roll.is-fail .ev-roll-die { border-color: var(--blood2); color: var(--bad); }
+.ev-roll-txt { display: flex; flex-direction: column; }
+.ev-outcome { font-size: 16px; line-height: 1.5; }
+.ev-lines { list-style: none; margin: 10px 0 0; padding: 8px 0 0; border-top: 1px solid #2a211b; font-family: var(--mono); font-size: 14px; }
+.ev-lines li { padding: 3px 0 3px 14px; position: relative; }
+.ev-lines li::before { content: '›'; position: absolute; left: 2px; color: var(--muted); }
+
+/* estados mentais do herói alteram a leitura */
+.ev-dread .ev-text { animation: ev-tremor 4s infinite ease-in-out; }
+.ev-dread .ev-title { filter: blur(.3px); letter-spacing: .05em; }
+.ev-corr .ev-text { background: linear-gradient(90deg, #1f1020, #140f0d 70%, transparent); border-left-color: var(--corr); }
+
+@keyframes ev-die { 0% { transform: rotate(-200deg) scale(.4); opacity: 0; } 70% { transform: rotate(12deg) scale(1.1); opacity: 1; } 100% { transform: none; } }
+@keyframes ev-tremor { 0%, 92%, 100% { transform: none; } 94% { transform: translateX(-1px) skewX(-.6deg); } 96% { transform: translateX(1px); } 98% { transform: translateX(-1px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ev-dread .ev-text, .ev-roll-die, .ev-result { animation: none; }
+}

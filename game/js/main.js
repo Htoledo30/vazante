@@ -1,57 +1,74 @@
-// Ponto de entrada: registra conteúdo, inicia a aplicação e o service worker.
-import './data/index.js';
-import { App } from './ui/app.js';
-import { h } from './ui/dom.js';
+// Ponto de entrada: monta a interface, registra telas e ganchos, carrega o save.
+//
+// Cada área registra suas telas (export default [defs]) e, opcionalmente, ganchos (export function init()).
+// As áreas são importadas dinamicamente e de forma ISOLADA: se um módulo falhar ao carregar,
+// o resto do jogo continua de pé (título, configurações, backup) e o erro é mostrado.
+import { mount, registerScreen, setHud, go, reportError } from './ui/app.js';
+import { load } from './core/save.js';
+import { h, button } from './ui/dom.js';
 
-function setVh() {
-  const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.01;
-  document.documentElement.style.setProperty('--vh', vh + 'px');
+const AREAS = [
+  ['shell', () => import('./ui/screens/shell.js')],
+  ['character', () => import('./ui/screens/character.js')],
+  ['combat', () => import('./ui/screens/combat.js')],
+  ['expedition', () => import('./ui/screens/expedition.js')],
+  ['city', () => import('./ui/screens/city.js')],
+  ['event', () => import('./ui/screens/event.js')],
+];
+
+/** HUD mínimo caso ui/hud.js não carregue: só o botão de menu (nunca prender o jogador). */
+function fallbackHud(el) {
+  el.append(h('div.row', h('span.muted.small', 'ICOR'), h('span.spacer'),
+    button('☰ Menu', () => import('./ui/screens/shell.js').then((m) => m.openPauseMenu()), { kind: ['ghost', 'small'] })));
 }
-setVh();
-window.addEventListener('resize', setVh);
 
-// Evita zoom por gesto de pinça e duplo toque no iOS (o jogo é todo por toque simples).
-document.addEventListener('gesturestart', (e) => e.preventDefault());
-document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+export const bootReport = { loaded: [], failed: [] };
 
-const app = new App();
-window.__vazante = app;
-try {
-  app.boot();
-} catch (e) {
-  console.error(e);
-  document.getElementById('app').innerHTML = '<div class="boot"><div class="boot-title">VAZANTE</div><p>Erro ao iniciar: ' + (e && e.message) + '</p><button class="btn" onclick="location.reload()">Recarregar</button></div>';
-}
-
-// Service worker: offline + atualização segura (o save fica no localStorage, fora do cache).
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js', { scope: './' }).then((reg) => {
-      const notify = (worker) => {
-        const t = h('div', { class: 'toast update', role: 'status' }, 'Nova versão do Vazante disponível. ',
-          h('button', { class: 'btn small primary', style: { marginLeft: '8px' }, onclick: () => { app.save(); worker.postMessage({ type: 'SKIP_WAITING' }); } }, 'Atualizar'));
-        document.body.appendChild(t);
-      };
-      // Fora de uma expedição (título/vila), a atualização é aplicada na hora — o save fica no aparelho.
-      const safeToReload = () => app.view !== 'run';
-      const handle = (w) => { if (safeToReload()) { app.save(); w.postMessage({ type: 'SKIP_WAITING' }); } else notify(w); };
-      if (reg.waiting && navigator.serviceWorker.controller) handle(reg.waiting);
-      reg.addEventListener('updatefound', () => {
-        const w = reg.installing;
-        if (!w) return;
-        w.addEventListener('statechange', () => {
-          if (w.state === 'installed' && navigator.serviceWorker.controller) handle(w);
-        });
-      });
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
-    }).catch((e) => console.warn('SW falhou', e));
-    let reloading = false;
-    const hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloading || !hadController) return; // primeira instalação: não recarrega
-      reloading = true;
-      app.save();
-      location.reload();
-    });
+async function boot() {
+  const root = document.getElementById('app');
+  mount(root);
+  const mods = await Promise.allSettled(AREAS.map(([, f]) => f()));
+  const inits = [];
+  mods.forEach((r, i) => {
+    const name = AREAS[i][0];
+    if (r.status === 'rejected') {
+      bootReport.failed.push({ name, error: String(r.reason?.message || r.reason) });
+      console.error(`[boot] módulo ${name} falhou:`, r.reason);
+      return;
+    }
+    bootReport.loaded.push(name);
+    for (const def of r.value.default || []) {
+      try { registerScreen(def); } catch (e) { reportError(e); }
+    }
+    if (typeof r.value.init === 'function') inits.push([name, r.value.init]);
   });
+  try {
+    const hud = await import('./ui/hud.js');
+    setHud(hud.renderHud || fallbackHud);
+  } catch (e) {
+    bootReport.failed.push({ name: 'hud', error: String(e?.message || e) });
+    console.error('[boot] hud falhou:', e);
+    setHud(fallbackHud);
+  }
+  // shell primeiro (ciclo de vida, áudio, service worker), depois as demais áreas
+  for (const [name, init] of inits) {
+    try { await init(); } catch (e) { console.error(`[boot] init ${name}:`, e); reportError(e); }
+  }
+  try { load(); } catch (e) { reportError(e); } // define G se houver save (o título decide "Continuar")
+  go('title', {}, { replace: true });
+  if (bootReport.failed.length) {
+    reportError(new Error(`Partes do jogo não carregaram: ${bootReport.failed.map((f) => f.name).join(', ')}`));
+  }
+  window.__ICOR_BOOT__ = bootReport;
 }
+
+window.addEventListener('error', (e) => reportError(e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => reportError(e.reason));
+boot().catch((e) => {
+  reportError(e);
+  const root = document.getElementById('app');
+  if (root && !root.querySelector('.screen')) {
+    root.textContent = '';
+    root.append(h('div.boot', h('div.boot-title', 'ICOR'), h('div.boot-sub', 'Falha ao iniciar. Recarregue a página.'), h('pre.small.muted', String(e?.message || e))));
+  }
+});

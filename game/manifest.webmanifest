@@ -1,19 +1,21 @@
 {
-  "name": "Vazante — A Cidade sob a Maré",
-  "short_name": "Vazante",
-  "description": "RPG tático roguelite: a maré recua e revela uma cidade afogada.",
-  "lang": "pt-BR",
+  "name": "ICOR — O Deus Apodrecido",
+  "short_name": "ICOR",
+  "description": "RPG de dark fantasy brutal. Um deus apodrece no Ermo; colha seu sangue antes que a Chaga engula Valdrem.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b1622",
-  "theme_color": "#0b1622",
-  "categories": ["games"],
+  "background_color": "#0b0908",
+  "theme_color": "#0b0908",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["games", "entertainment"],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
   ]
 }
